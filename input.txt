@@ -1,0 +1,8 @@
+resetCanvas 600 500
+setColor 0 255 0
+drawLine line1 100 50 500 200 DDA
+saveCanvas 1
+setColor 255 0 0
+drawLine 666 200 300 400 150 Bresenham
+drawEllipse ellipse1 10 10 200 200
+saveCanvas 2
