@@ -147,6 +147,26 @@ def draw_ellipse(p_list):
 
     return result
 
+def fac(n):
+    ret = 1
+    for i in range(1, n+1):
+        ret *= i
+    return ret
+
+
+def bezier(n, i, t):
+    return fac(n) / (fac(n - i) * fac(i)) * pow(1 - t, n - i) * pow(t, i)
+
+def bspline(u):
+    if 0 <= u and u < 1:
+        return pow(u,3) / 6
+    elif 1 <= u and u < 2:
+        return (-3 * pow(u-1, 3) + 3 * pow(u-1, 2) + 3*(u-1) + 1) / 6
+    elif 2 <= u and u < 3:
+        return (3 * pow(u-2, 3) - 6 * pow(u-2, 2) + 4) / 6
+    elif 3 <= u and u < 4:
+        return pow(4-u, 3) / 6
+    return 0
 
 def draw_curve(p_list, algorithm):
     """绘制曲线
@@ -155,7 +175,33 @@ def draw_curve(p_list, algorithm):
     :param algorithm: (string) 绘制使用的算法，包括'Bezier'和'B-spline'（三次均匀B样条曲线，曲线不必经过首末控制点）
     :return: (list of list of int: [[x_0, y_0], [x_1, y_1], [x_2, y_2], ...]) 绘制结果的像素点坐标列表
     """
-    pass
+    result = []
+    if algorithm == 'Bezier':
+        t = 0
+        num = 256 * len(p_list)
+        interval = 1 / num
+        for i in range(num):
+            x = y = 0
+            for j, point in enumerate(p_list):
+                coeff = bezier(len(p_list) - 1, j, t)
+                x += coeff * point[0]
+                y += coeff * point[1]
+            t += interval
+            result.append((int(x), int(y)))
+    elif algorithm == 'B-spline':
+        print('FA')
+        num = 256 * len(p_list)
+        interval = 1 / num
+        u = 3
+        while u < len(p_list) + 1:
+            x = y = 0
+            for j, point in enumerate(p_list):
+                coeff = bspline(u - j)
+                x += coeff * point[0]
+                y += coeff * point[1]
+            u += interval
+            result.append((int(x), int(y)))
+    return result
 
 
 def translate(p_list, dx, dy):
