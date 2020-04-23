@@ -35,6 +35,8 @@ class MyCanvas(QGraphicsView):
         self.temp_algorithm = ''
         self.temp_id = ''
         self.temp_item = None
+        self.clipPoint1 = ''
+        self.clipPoint2 = ''
 
     def start_draw_line(self, algorithm, item_id):
         self.status = 'line'
@@ -49,6 +51,16 @@ class MyCanvas(QGraphicsView):
         self.status = 'curve'
         self.temp_algorithm = algorithm
         self.temp_id = item_id
+
+    def start_clip(self, algorithm):
+        self.status = 'clip'
+        self.temp_algorithm = algorithm
+        if self.selected_id == '' or self.item_dict[self.selected_id].item_type != 'line':
+            self.status = ''
+            return False
+        else:
+            self.temp_id = self.selected_id
+            return True
 
     def finish_draw(self):
         self.temp_id = self.main_window.get_id()
@@ -86,6 +98,8 @@ class MyCanvas(QGraphicsView):
                 self.scene().addItem(self.temp_item)
             else:
                 self.temp_item.p_list.append([x, y])
+        elif self.status == 'clip':
+            self.clipPoint1 = [x, y]
 
         self.updateScene([self.sceneRect()])
         super().mousePressEvent(event)
@@ -124,6 +138,26 @@ class MyCanvas(QGraphicsView):
             self.finish_draw()
         elif self.status == 'curve':
             pass
+        elif self.status == 'clip':
+            pos = self.mapToScene(event.localPos().toPoint())
+            x = int(pos.x())
+            y = int(pos.y())
+            self.clipPoint2 = [x, y]
+            clipped_list = alg.clip(self.item_dict[self.temp_id].p_list,
+                                    min(self.clipPoint1[0], self.clipPoint2[0]),
+                                    min(self.clipPoint1[1], self.clipPoint2[1]),
+                                    max(self.clipPoint1[0], self.clipPoint2[0]),
+                                    max(self.clipPoint1[1], self.clipPoint2[1]),
+                                    self.temp_algorithm)
+            if clipped_list == '':
+                self.item_dict[self.temp_id] = ''
+            else:
+                self.item_dict[self.temp_id].p_list = clipped_list
+                self.item_dict[self.temp_id].update()
+            self.status = ''
+            self.temp_id = ''
+
+
         super().mouseReleaseEvent(event)
 
 
@@ -257,6 +291,8 @@ class MainWindow(QMainWindow):
         ellipse_act.triggered.connect(self.ellipse_action)
         curve_bezier_act.triggered.connect(self.curve_bezier_action)
         curve_b_spline_act.triggered.connect(self.curve_b_spline_action)
+        clip_cohen_sutherland_act.triggered.connect(self.clip_cohen_sutherland_action)
+        clip_liang_barsky_act.triggered.connect(self.clip_liang_barsky_action)
         self.list_widget.currentTextChanged.connect(self.canvas_widget.selection_changed)
 
         # 设置主窗口的布局
@@ -308,6 +344,20 @@ class MainWindow(QMainWindow):
     def curve_b_spline_action(self):
         self.canvas_widget.start_draw_curve('B-spline', self.get_id())
         self.statusBar().showMessage('B样条算法绘制曲线')
+        self.list_widget.clearSelection()
+        self.canvas_widget.clear_selection()
+
+    def clip_cohen_sutherland_action(self):
+        if not self.canvas_widget.start_clip('Cohen-Sutherland'):
+            self.statusBar().showMessage('请选中线段图元')
+        else:
+            self.statusBar().showMessage('Cohen-Sutherland算法裁剪')
+        self.list_widget.clearSelection()
+        self.canvas_widget.clear_selection()
+
+    def clip_liang_barsky_action(self):
+        self.canvas_widget.start_clip('Liang-Barsky')
+        self.statusBar().showMessage('Liang-Barsky算法裁剪')
         self.list_widget.clearSelection()
         self.canvas_widget.clear_selection()
 

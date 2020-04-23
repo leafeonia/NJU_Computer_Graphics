@@ -238,6 +238,18 @@ def scale(p_list, x, y, s):
     """
     pass
 
+def cohen_encoder(point, x_min, y_min, x_max, y_max):
+    [x, y] = point
+    code = 0
+    if x < x_min:
+        code += 1
+    if x > x_max:
+        code += 2
+    if y < y_min:
+        code += 4
+    if y > y_max:
+        code += 8
+    return code
 
 def clip(p_list, x_min, y_min, x_max, y_max, algorithm):
     """线段裁剪
@@ -250,4 +262,34 @@ def clip(p_list, x_min, y_min, x_max, y_max, algorithm):
     :param algorithm: (string) 使用的裁剪算法，包括'Cohen-Sutherland'和'Liang-Barsky'
     :return: (list of list of int: [[x_0, y_0], [x_1, y_1]]) 裁剪后线段的起点和终点坐标
     """
-    pass
+    if algorithm == 'Cohen-Sutherland':
+        a, b = p_list[0], p_list[1]
+        x1, y1, x2, y2 = a[0], a[1], b[0], b[1]
+        x, y = x1, y1
+        code1 = cohen_encoder(a, x_min, y_min, x_max, y_max)
+        code2 = cohen_encoder(b, x_min, y_min, x_max, y_max)
+        while code1 or code2:
+            if code1 & code2:
+                return ''
+            code = [code1, code2][code1 == 0]
+            if code & 1:
+                x = x_min
+                y = int(y1 + (y2 - y1)*(x_min - x1)/(x2 - x1))
+            elif code & 2:
+                x = x_max
+                y = int(y1 + (y2 - y1)*(x_max - x1)/(x2 - x1))
+            elif code & 4:
+                y = y_min
+                x = int(x1 + (x2 - x1)*(y_min - y1)/(y2 - y1))
+            elif code & 8:
+                y = y_max
+                x = int(x1 + (x2 - x1)*(y_max - y1)/(y2 - y1))
+            if code == code1:
+                x1, y1 = x, y
+                code1 = cohen_encoder([x1, y1], x_min, y_min, x_max, y_max)
+            else:
+                x2, y2 = x, y
+                code2 = cohen_encoder([x2, y2], x_min, y_min, x_max, y_max)
+        return [[x1, y1], [x2, y2]]
+
+
