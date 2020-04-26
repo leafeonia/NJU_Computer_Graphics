@@ -212,7 +212,10 @@ def translate(p_list, dx, dy):
     :param dy: (int) 垂直方向平移量
     :return: (list of list of int: [[x_0, y_0], [x_1, y_1], [x_2, y_2], ...]) 变换后的图元参数
     """
-    pass
+    ret = []
+    for item in p_list:
+        ret.append([item[0] + dx, item[1] + dy])
+    return ret
 
 
 def rotate(p_list, x, y, r):
@@ -291,5 +294,6 @@ def clip(p_list, x_min, y_min, x_max, y_max, algorithm):
                 x2, y2 = x, y
                 code2 = cohen_encoder([x2, y2], x_min, y_min, x_max, y_max)
         return [[x1, y1], [x2, y2]]
+
 
 
