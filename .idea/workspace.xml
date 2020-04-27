@@ -2,9 +2,6 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="19e1279b-a02d-4b38-a1b1-71564faaa61b" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/CG_demo.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/CG_demo.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/cg_algorithms.py" beforeDir="false" afterPath="$PROJECT_DIR$/cg_algorithms.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/cg_gui.py" beforeDir="false" afterPath="$PROJECT_DIR$/cg_gui.py" afterDir="false" />
     </list>
@@ -117,6 +114,7 @@
       <workItem from="1586687597179" duration="10541000" />
       <workItem from="1587654738819" duration="6043000" />
       <workItem from="1587705013591" duration="2269000" />
+      <workItem from="1587960218080" duration="183000" />
     </task>
     <servers />
   </component>
@@ -165,6 +163,10 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state width="1877" height="318" key="GridCell.Tab.1.right/0.0.1920.1040@0.0.1920.1040" timestamp="1587708264735" />
+    <state x="622" y="307" key="git4idea.merge.GitPullDialog" timestamp="1587960231452">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="622" y="307" key="git4idea.merge.GitPullDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1587960231452" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -176,7 +178,7 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/cg_algorithms.py</url>
-          <line>294</line>
+          <line>297</line>
           <option name="timeStamp" value="27" />
         </line-breakpoint>
       </breakpoints>

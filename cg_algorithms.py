@@ -212,7 +212,10 @@ def translate(p_list, dx, dy):
     :param dy: (int) 垂直方向平移量
     :return: (list of list of int: [[x_0, y_0], [x_1, y_1], [x_2, y_2], ...]) 变换后的图元参数
     """
-    pass
+    ret = []
+    for item in p_list:
+        ret.append([item[0] + dx, item[1] + dy])
+    return ret
 
 
 def rotate(p_list, x, y, r):
@@ -324,3 +327,6 @@ def clip(p_list, x_min, y_min, x_max, y_max, algorithm):
             return ''
         else:
             return [[int(a[0] + umax * p[1]), int(a[1] + umax * p[3])], [int(a[0] + umin * p[1]), int(a[1] + umin * p[3])]]
+
+
+

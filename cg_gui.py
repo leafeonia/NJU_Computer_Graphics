@@ -37,6 +37,8 @@ class MyCanvas(QGraphicsView):
         self.temp_item = None
         self.clipPoint1 = ''
         self.clipPoint2 = ''
+        self.translateOrigin = ''
+        self.translate_p_list = []
 
     def start_draw_line(self, algorithm, item_id):
         self.status = 'line'
@@ -60,6 +62,17 @@ class MyCanvas(QGraphicsView):
             return False
         else:
             self.temp_id = self.selected_id
+            return True
+
+    def start_translate(self):
+        self.status = 'translate'
+        if self.selected_id == '':
+            self.status = ''
+            return False
+        else:
+            self.temp_id = self.selected_id
+            self.temp_item = self.item_dict[self.temp_id]
+            self.translate_p_list = self.temp_item.p_list[:]
             return True
 
     def finish_draw(self):
@@ -100,6 +113,9 @@ class MyCanvas(QGraphicsView):
                 self.temp_item.p_list.append([x, y])
         elif self.status == 'clip':
             self.clipPoint1 = [x, y]
+        elif self.status == 'translate':
+            self.translateOrigin = [x, y]
+
 
         self.updateScene([self.sceneRect()])
         super().mousePressEvent(event)
@@ -122,8 +138,8 @@ class MyCanvas(QGraphicsView):
             self.temp_item.p_list[1] = [x, y]
         elif self.status == 'ellipse':
             self.temp_item.p_list[1] = [x, y]
-        elif self.status == 'curve':
-            pass
+        elif self.status == 'translate':
+            self.temp_item.p_list = alg.translate(self.translate_p_list, x - self.translateOrigin[0], y - self.translateOrigin[1])
         self.updateScene([self.sceneRect()])
         super().mouseMoveEvent(event)
 
@@ -156,6 +172,10 @@ class MyCanvas(QGraphicsView):
                 self.item_dict[self.temp_id].update()
             self.status = ''
             self.temp_id = ''
+        elif self.status == 'translate':
+            self.status = ''
+            self.temp_id = ''
+
 
 
         super().mouseReleaseEvent(event)
@@ -291,6 +311,7 @@ class MainWindow(QMainWindow):
         ellipse_act.triggered.connect(self.ellipse_action)
         curve_bezier_act.triggered.connect(self.curve_bezier_action)
         curve_b_spline_act.triggered.connect(self.curve_b_spline_action)
+        translate_act.triggered.connect(self.translate_action)
         clip_cohen_sutherland_act.triggered.connect(self.clip_cohen_sutherland_action)
         clip_liang_barsky_act.triggered.connect(self.clip_liang_barsky_action)
         self.list_widget.currentTextChanged.connect(self.canvas_widget.selection_changed)
@@ -346,6 +367,15 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage('B样条算法绘制曲线')
         self.list_widget.clearSelection()
         self.canvas_widget.clear_selection()
+
+    def translate_action(self):
+        if not self.canvas_widget.start_translate():
+            self.statusBar().showMessage('请选中图元')
+        else:
+            self.statusBar().showMessage('图元平移')
+        self.list_widget.clearSelection()
+        self.canvas_widget.clear_selection()
+
 
     def clip_cohen_sutherland_action(self):
         if not self.canvas_widget.start_clip('Cohen-Sutherland'):
