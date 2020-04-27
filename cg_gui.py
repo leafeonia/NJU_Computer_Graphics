@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import (
     QListWidget,
     QHBoxLayout,
     QWidget,
-    QStyleOptionGraphicsItem)
+    QStyleOptionGraphicsItem, QGraphicsSceneMouseEvent)
 from PyQt5.QtGui import QPainter, QMouseEvent, QColor
 from PyQt5.QtCore import QRectF
 
@@ -172,6 +172,8 @@ class MyCanvas(QGraphicsView):
                 self.item_dict[self.temp_id].update()
             self.status = ''
             self.temp_id = ''
+            self.updateScene([self.sceneRect()])
+
         elif self.status == 'translate':
             self.status = ''
             self.temp_id = ''

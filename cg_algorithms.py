@@ -305,23 +305,23 @@ def clip(p_list, x_min, y_min, x_max, y_max, algorithm):
             if q[0] < 0 or q[1] < 0:
                 return ''
             for i in range(2, 4):
-                if p[i] > 0:
+                if p[i] < 0:
                     umax = max(umax, q[i] / p[i])
-                elif p[i] < 0:
+                elif p[i] > 0:
                     umin = min(umin, q[i] / p[i])
         elif p[2] == 0:
             if q[2] < 0 or q[3] < 0:
                 return ''
             for i in range(2):
-                if p[i] > 0:
+                if p[i] < 0:
                     umax = max(umax, q[i] / p[i])
-                elif p[i] < 0:
+                elif p[i] > 0:
                     umin = min(umin, q[i] / p[i])
         else:
             for i in range(4):
-                if p[i] > 0:
+                if p[i] < 0:
                     umax = max(umax, q[i] / p[i])
-                elif p[i] < 0:
+                elif p[i] > 0:
                     umin = min(umin, q[i] / p[i])
         if umax > umin:
             return ''
