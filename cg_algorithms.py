@@ -292,4 +292,35 @@ def clip(p_list, x_min, y_min, x_max, y_max, algorithm):
                 code2 = cohen_encoder([x2, y2], x_min, y_min, x_max, y_max)
         return [[x1, y1], [x2, y2]]
 
-
+    elif algorithm == 'Liang-Barsky':
+        a, b = p_list[0], p_list[1]
+        p = [a[0] - b[0], b[0] - a[0], a[1] - b[1], b[1] - a[1]]
+        q = [a[0] - x_min, x_max - a[0], a[1] - y_min, y_max - a[1]]
+        umax = 0
+        umin = 1
+        if p[0] == 0:
+            if q[0] < 0 or q[1] < 0:
+                return ''
+            for i in range(2, 4):
+                if p[i] > 0:
+                    umax = max(umax, q[i] / p[i])
+                elif p[i] < 0:
+                    umin = min(umin, q[i] / p[i])
+        elif p[2] == 0:
+            if q[2] < 0 or q[3] < 0:
+                return ''
+            for i in range(2):
+                if p[i] > 0:
+                    umax = max(umax, q[i] / p[i])
+                elif p[i] < 0:
+                    umin = min(umin, q[i] / p[i])
+        else:
+            for i in range(4):
+                if p[i] > 0:
+                    umax = max(umax, q[i] / p[i])
+                elif p[i] < 0:
+                    umin = min(umin, q[i] / p[i])
+        if umax > umin:
+            return ''
+        else:
+            return [[int(a[0] + umax * p[1]), int(a[1] + umax * p[3])], [int(a[0] + umin * p[1]), int(a[1] + umin * p[3])]]

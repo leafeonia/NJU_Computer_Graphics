@@ -356,8 +356,10 @@ class MainWindow(QMainWindow):
         self.canvas_widget.clear_selection()
 
     def clip_liang_barsky_action(self):
-        self.canvas_widget.start_clip('Liang-Barsky')
-        self.statusBar().showMessage('Liang-Barsky算法裁剪')
+        if not self.canvas_widget.start_clip('Liang-Barsky'):
+            self.statusBar().showMessage('请选中线段图元')
+        else:
+            self.statusBar().showMessage('Liang-Barsky算法裁剪')
         self.list_widget.clearSelection()
         self.canvas_widget.clear_selection()
 
