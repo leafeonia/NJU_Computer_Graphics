@@ -189,7 +189,6 @@ def draw_curve(p_list, algorithm):
             t += interval
             result.append((int(x), int(y)))
     elif algorithm == 'B-spline':
-        print('FA')
         num = 256 * len(p_list)
         interval = 1 / num
         u = 3
