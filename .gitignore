@@ -7,11 +7,11 @@
 # Reference httpsintellij-support.jetbrains.comhcen-usarticles206544839
 
 # User-specific stuff
-.ideaworkspace.xml
-.ideatasks.xml
-.ideausage.statistics.xml
-.ideadictionaries
-.ideashelf
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/usage.statistics.xml
+.idea/dictionaries
+.idea/shelf
 
 # Generated files
 .ideacontentModel.xml
