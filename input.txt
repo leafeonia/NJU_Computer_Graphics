@@ -1,6 +1,7 @@
-resetCanvas 600 500
+resetCanvas 600 600
 setColor 0 255 0
-drawLine line1 100 50 500 200 DDA
+drawLine line1 200 200 400 400 DDA
+rotate line1 220 220 180
 saveCanvas 1
 translate line1 -50 50
 setColor 255 0 0

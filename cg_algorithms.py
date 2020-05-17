@@ -12,6 +12,8 @@ def draw_line(p_list, algorithm):
     :param algorithm: (string) 绘制使用的算法，包括'DDA'和'Bresenham'，此处的'Naive'仅作为示例，测试时不会出现
     :return: (list of list of int: [[x_0, y_0], [x_1, y_1], [x_2, y_2], ...]) 绘制结果的像素点坐标列表
     """
+    if len(p_list) < 2:
+        return []
     x0, y0 = p_list[0]
     x1, y1 = p_list[1]
     result = []
@@ -27,12 +29,12 @@ def draw_line(p_list, algorithm):
                 result.append((x, int(y0 + k * (x - x0))))
     elif algorithm == 'DDA':
         result.append((x0, y0))
-        len = max(abs(x1 - x0), abs(y1 - y0))
-        if len > 0:
-            dx = (x1 - x0) / len
-            dy = (y1 - y0) / len
+        length = max(abs(x1 - x0), abs(y1 - y0))
+        if length > 0:
+            dx = (x1 - x0) / length
+            dy = (y1 - y0) / length
             x, y = x0, y0
-            for i in range(len):
+            for i in range(length):
                 x = x + dx
                 y = y + dy
                 result.append((int(x), int(y)))
@@ -211,10 +213,8 @@ def translate(p_list, dx, dy):
     :param dy: (int) 垂直方向平移量
     :return: (list of list of int: [[x_0, y_0], [x_1, y_1], [x_2, y_2], ...]) 变换后的图元参数
     """
-    ret = []
-    for item in p_list:
-        ret.append([item[0] + dx, item[1] + dy])
-    return ret
+
+    return list(map(lambda p: [p[0] + dx, p[1] + dy], p_list))
 
 
 def rotate(p_list, x, y, r):
@@ -226,7 +226,8 @@ def rotate(p_list, x, y, r):
     :param r: (int) 顺时针旋转角度（°）
     :return: (list of list of int: [[x_0, y_0], [x_1, y_1], [x_2, y_2], ...]) 变换后的图元参数
     """
-    pass
+    return list(map(lambda p: [int(x + (p[0]-x) * math.cos(r * math.pi / 180) - (p[1]-y) * math.sin(r * math.pi / 180)),
+                               int(y + (p[0]-x) * math.sin(r * math.pi / 180) + (p[1]-y) * math.cos(r * math.pi / 180))], p_list))
 
 
 def scale(p_list, x, y, s):
@@ -238,7 +239,7 @@ def scale(p_list, x, y, s):
     :param s: (float) 缩放倍数
     :return: (list of list of int: [[x_0, y_0], [x_1, y_1], [x_2, y_2], ...]) 变换后的图元参数
     """
-    pass
+    return list(map(lambda p: [int(p[0] * s + x * (1-s)), int(p[1] * s + y * (1-s))], p_list))
 
 def cohen_encoder(point, x_min, y_min, x_max, y_max):
     [x, y] = point
