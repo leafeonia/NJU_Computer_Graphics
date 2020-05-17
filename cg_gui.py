@@ -31,7 +31,7 @@ class MyCanvas(QGraphicsView):
         self.selected_id = ''
 
         self.status = ''
-        self.painting = False
+        self.paintingCurve = False
         self.temp_algorithm = ''
         self.temp_id = ''
         self.temp_item = None
@@ -39,6 +39,14 @@ class MyCanvas(QGraphicsView):
         self.clipPoint2 = ''
         self.translateOrigin = ''
         self.translate_p_list = []
+
+        # scale
+        self.temp_plist = []
+        self.corePoint = [-1, -1]
+        self.scalePoint = [-1, -1]
+
+        # rotate
+        self.rotatePoint = [-1, -1]
 
     def start_draw_line(self, algorithm, item_id):
         self.status = 'line'
@@ -75,6 +83,29 @@ class MyCanvas(QGraphicsView):
             self.translate_p_list = self.temp_item.p_list[:]
             return True
 
+    def start_scale(self):
+        self.status = 'scale'
+        if self.selected_id == '':
+            self.status = ''
+            return False
+        else:
+            self.temp_id = self.selected_id
+            self.temp_item = self.item_dict[self.temp_id]
+            self.scalePoint = [-1, -1]
+            return True
+
+    def start_rotate(self):
+        self.status = 'rotate'
+        if self.selected_id == '':
+            self.status = ''
+            return False
+        else:
+            self.temp_id = self.selected_id
+            self.temp_item = self.item_dict[self.temp_id]
+            self.rotatePoint = [-1, -1]
+            # TODO
+            return True
+
     def finish_draw(self):
         self.temp_id = self.main_window.get_id()
 
@@ -105,9 +136,9 @@ class MyCanvas(QGraphicsView):
             self.temp_item = MyItem(self.temp_id, self.status, [[x, y], [x, y]])
             self.scene().addItem(self.temp_item)
         elif self.status == 'curve':
-            if self.painting == False:
+            if self.paintingCurve == False:
                 self.temp_item = MyItem(self.temp_id, self.status, [[x, y]], self.temp_algorithm)
-                self.painting = True
+                self.paintingCurve = True
                 self.scene().addItem(self.temp_item)
             else:
                 self.temp_item.p_list.append([x, y])
@@ -115,6 +146,13 @@ class MyCanvas(QGraphicsView):
             self.clipPoint1 = [x, y]
         elif self.status == 'translate':
             self.translateOrigin = [x, y]
+        elif self.status == 'scale':
+            if self.scalePoint == [-1, -1]:
+                self.scalePoint = [x, y]
+                self.temp_plist = self.temp_item.p_list[:]
+                self.corePoint = self.temp_item.corePoint()
+
+
 
 
         self.updateScene([self.sceneRect()])
@@ -127,8 +165,21 @@ class MyCanvas(QGraphicsView):
         if self.status == 'curve':
             self.item_dict[self.temp_id] = self.temp_item
             self.list_widget.addItem(self.temp_id)
-            self.painting = False
+            self.paintingCurve = False
             self.finish_draw()
+
+    def projectPointToLine(self, a, b, point):
+        x0, y0, x1, y1, x, y = a[0], a[1], b[0], b[1], point[0], point[1]
+        if x0 == x1:
+            return [x0, y]
+        elif y0 == y1:
+            return [x, y0]
+        else:
+            k = (y1 - y0) / (x1 - x0)
+            b0 = y0 - k * x0
+            projectx = (k * y + x - k * b0) / (k * k + 1)
+            return [int(projectx), int(projectx * k + b0)]
+
 
     def mouseMoveEvent(self, event: QMouseEvent) -> None:
         pos = self.mapToScene(event.localPos().toPoint())
@@ -140,6 +191,27 @@ class MyCanvas(QGraphicsView):
             self.temp_item.p_list[1] = [x, y]
         elif self.status == 'translate':
             self.temp_item.p_list = alg.translate(self.translate_p_list, x - self.translateOrigin[0], y - self.translateOrigin[1])
+        elif self.status == 'scale':
+            if self.scalePoint != [-1, -1]:
+                a1 = self.corePoint[0] - self.scalePoint[0]
+                b1 = self.corePoint[1] - self.scalePoint[1]
+                a2 = self.corePoint[0] - self.projectPointToLine(self.corePoint, self.scalePoint, [x, y])[0]
+                b2 = self.corePoint[1] - self.projectPointToLine(self.corePoint, self.scalePoint, [x, y])[1]
+                if a1 == 0:
+                    pivotLength = b1
+                    nowLength = b2
+                elif b1 == 0:
+                    pivotLength = a1
+                    nowLength = a2
+                else:
+                    if abs(a1) > abs(b1):
+                        pivotLength = a1
+                        nowLength = a2
+                    else:
+                        pivotLength = b1
+                        nowLength = b2
+                s = nowLength / pivotLength
+                self.temp_item.p_list = alg.scale(self.temp_plist, self.scalePoint[0], self.scalePoint[1], 1 - s)
         self.updateScene([self.sceneRect()])
         super().mouseMoveEvent(event)
 
@@ -212,7 +284,12 @@ class MyItem(QGraphicsItem):
                 painter.setPen(QColor(255, 0, 0))
                 painter.drawRect(self.boundingRect())
         elif self.item_type == 'polygon':
-            pass
+            item_pixels = alg.draw_polygon(self.p_list)
+            for p in item_pixels:
+                painter.drawPoint(*p)
+            if self.selected:
+                painter.setPen(QColor(255, 0, 0))
+                painter.drawRect(self.boundingRect())
         elif self.item_type == 'ellipse':
             item_pixels = alg.draw_ellipse(self.p_list)
             for p in item_pixels:
@@ -239,7 +316,14 @@ class MyItem(QGraphicsItem):
             h = max(y0, y1) - y
             return QRectF(x - 1, y - 1, w + 2, h + 2)
         elif self.item_type == 'polygon':
-            pass
+            xmin = ymin = 10000
+            xmax = ymax = 0
+            for point in self.p_list:
+                xmin = min(point[0], xmin)
+                xmax = max(point[0], xmax)
+                ymin = min(point[1], ymin)
+                ymax = max(point[1], ymax)
+            return QRectF(xmin, ymin, xmax - xmin, ymax - ymin)
         elif self.item_type == 'ellipse':
             x0, y0 = self.p_list[0]
             x1, y1 = self.p_list[1]
@@ -257,6 +341,10 @@ class MyItem(QGraphicsItem):
                 ymin = min(point[1], ymin)
                 ymax = max(point[1], ymax)
             return QRectF(xmin, ymin, xmax - xmin, ymax - ymin)
+
+    def corePoint(self):
+        bdRect = self.boundingRect()
+        return [int(bdRect.x() + (bdRect.right() - bdRect.left()) / 2), int(bdRect.y() + (bdRect.bottom() - bdRect.top()) / 2)]
 
 
 class MainWindow(QMainWindow):
@@ -316,6 +404,8 @@ class MainWindow(QMainWindow):
         translate_act.triggered.connect(self.translate_action)
         clip_cohen_sutherland_act.triggered.connect(self.clip_cohen_sutherland_action)
         clip_liang_barsky_act.triggered.connect(self.clip_liang_barsky_action)
+        scale_act.triggered.connect(self.scale_action)
+        rotate_act.triggered.connect(self.rotate_action)
         self.list_widget.currentTextChanged.connect(self.canvas_widget.selection_changed)
 
         # 设置主窗口的布局
@@ -375,6 +465,22 @@ class MainWindow(QMainWindow):
             self.statusBar().showMessage('请选中图元')
         else:
             self.statusBar().showMessage('图元平移')
+        self.list_widget.clearSelection()
+        self.canvas_widget.clear_selection()
+
+    def scale_action(self):
+        if not self.canvas_widget.start_scale():
+            self.statusBar().showMessage('请选中图元')
+        else:
+            self.statusBar().showMessage('图元缩放')
+        self.list_widget.clearSelection()
+        self.canvas_widget.clear_selection()
+
+    def rotate_action(self):
+        if not self.canvas_widget.start_rotate():
+            self.statusBar().showMessage('请选中图元')
+        else:
+            self.statusBar().showMessage('图元旋转')
         self.list_widget.clearSelection()
         self.canvas_widget.clear_selection()
 
