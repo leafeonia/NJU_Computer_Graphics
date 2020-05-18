@@ -106,6 +106,6 @@ if __name__ == '__main__':
                 x = int(line[2])
                 y = int(line[3])
                 r = int(line[4])
-                item_dict[item_id][1] = alg.rotate(item_dict[item_id][1], x, y, r)
+                item_dict[item_id][1] = alg.rotate(item_dict[item_id][1], x, y, -r)
             line = fp.readline()
 

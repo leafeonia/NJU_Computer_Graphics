@@ -17,7 +17,7 @@ from PyQt5.QtWidgets import (
     QStyleOptionGraphicsItem, QGraphicsSceneMouseEvent)
 from PyQt5.QtGui import QPainter, QMouseEvent, QColor
 from PyQt5.QtCore import QRectF
-
+import math
 
 class MyCanvas(QGraphicsView):
     """
@@ -103,7 +103,6 @@ class MyCanvas(QGraphicsView):
             self.temp_id = self.selected_id
             self.temp_item = self.item_dict[self.temp_id]
             self.rotatePoint = [-1, -1]
-            # TODO
             return True
 
     def finish_draw(self):
@@ -149,6 +148,11 @@ class MyCanvas(QGraphicsView):
         elif self.status == 'scale':
             if self.scalePoint == [-1, -1]:
                 self.scalePoint = [x, y]
+                self.temp_plist = self.temp_item.p_list[:]
+                self.corePoint = self.temp_item.corePoint()
+        elif self.status == 'rotate':
+            if self.rotatePoint == [-1, -1]:
+                self.rotatePoint = [x, y]
                 self.temp_plist = self.temp_item.p_list[:]
                 self.corePoint = self.temp_item.corePoint()
 
@@ -212,6 +216,31 @@ class MyCanvas(QGraphicsView):
                         nowLength = b2
                 s = nowLength / pivotLength
                 self.temp_item.p_list = alg.scale(self.temp_plist, self.scalePoint[0], self.scalePoint[1], 1 - s)
+        elif self.status == 'rotate':
+            if self.rotatePoint != [-1, -1]:
+                x1, y1 = self.corePoint[0], self.corePoint[1]
+                x2, y2 = self.rotatePoint[0] - x1, self.rotatePoint[1] - y1
+                x3, y3 = x - x1, y - y1
+                flip = False
+                if x2 == x1:
+                    if (y2 > y1 and x3 < x1) or (y2 < y1 and x3 > x1):
+                        flip = True
+                elif x2 > x1:
+                    k = y2 / x2
+                    if y3 < k * x3:
+                        flip = True
+                elif x2 < x1:
+                    k = y2 / x2
+                    if y3 > k * x3:
+                        flip = True
+                a = math.sqrt(pow(x3 - x2, 2) + pow(y3 - y2, 2))
+                b = math.sqrt(x2 * x2 + y2 * y2)
+                c = math.sqrt(x3 * x3 + y3 * y3)
+                cosA = (b*b+c*c-a*a)/(2*b*c)
+                r = int(math.acos(cosA) * 180 / math.pi)
+                if flip:
+                    r = 360 - r
+                self.temp_item.p_list = alg.rotate(self.temp_plist, self.corePoint[0], self.corePoint[1], r)
         self.updateScene([self.sceneRect()])
         super().mouseMoveEvent(event)
 

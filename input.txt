@@ -1,11 +1,7 @@
-resetCanvas 600 600
-setColor 0 255 0
-drawLine line1 200 200 400 400 DDA
-rotate line1 220 220 180
+resetCanvas 600 500
+drawPolygon poly1 200 200 200 220 350 200 DDA
 saveCanvas 1
-translate line1 -50 50
-setColor 255 0 0
-drawEllipse ellipse1 10 10 200 200
+rotate poly1 200 200 90
 saveCanvas 2
-clip line1 200 100 400 300 Cohen-Sutherland
+translate poly1 300 100
 saveCanvas 3
