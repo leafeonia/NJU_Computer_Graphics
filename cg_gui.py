@@ -14,9 +14,13 @@ from PyQt5.QtWidgets import (
     QListWidget,
     QHBoxLayout,
     QWidget,
-    QStyleOptionGraphicsItem, QGraphicsSceneMouseEvent)
-from PyQt5.QtGui import QPainter, QMouseEvent, QColor
+    QStyleOptionGraphicsItem,
+    QGraphicsSceneMouseEvent)
+from PyQt5.QtGui import QPainter, QMouseEvent, QColor, QPen
 from PyQt5.QtCore import QRectF
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
 import math
 
 class MyCanvas(QGraphicsView):
@@ -47,6 +51,21 @@ class MyCanvas(QGraphicsView):
 
         # rotate
         self.rotatePoint = [-1, -1]
+
+        pointPen = QPen()
+        pointPen.setColor(QColor(0, 0, 0))
+        pointPen.setWidth(1)
+        pointPen.setStyle(Qt.SolidLine)
+        pointPen.setCapStyle(Qt.SquareCap)
+        self.pointPen = pointPen
+
+    def addPoint(self, x, y, painter, pen):
+        painter.drawPoint(x,y)
+        painter.setPen(self.pointPen)
+        painter.drawLine(x - 2, y - 2, x - 2, y + 2)
+        painter.drawLine(x + 2, y - 2, x + 2, y + 2)
+        painter.drawLine(x - 2, y - 2, x + 2, y - 2)
+        painter.drawLine(x - 2, y + 2, x + 2, y + 2)
 
     def start_draw_line(self, algorithm, item_id):
         self.status = 'line'
@@ -159,6 +178,7 @@ class MyCanvas(QGraphicsView):
 
 
 
+
         self.updateScene([self.sceneRect()])
         super().mousePressEvent(event)
 
@@ -227,11 +247,11 @@ class MyCanvas(QGraphicsView):
                         flip = True
                 elif x2 > x1:
                     k = y2 / x2
-                    if y3 < k * x3:
+                    if y3 > k * x3:
                         flip = True
                 elif x2 < x1:
                     k = y2 / x2
-                    if y3 > k * x3:
+                    if y3 < k * x3:
                         flip = True
                 a = math.sqrt(pow(x3 - x2, 2) + pow(y3 - y2, 2))
                 b = math.sqrt(x2 * x2 + y2 * y2)
