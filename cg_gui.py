@@ -291,8 +291,6 @@ class MyCanvas(QGraphicsView):
             self.item_dict[self.temp_id] = self.temp_item
             self.list_widget.addItem(self.temp_id)
             self.finish_draw()
-        elif self.status == 'curve':
-            pass
         elif self.status == 'clip':
             pos = self.mapToScene(event.localPos().toPoint())
             x = int(pos.x())
@@ -351,7 +349,6 @@ class MyItem(QGraphicsItem):
                 line = alg.draw_line([self.p_list[i], self.p_list[i + 1]], self.algorithm)
                 item_pixels += line
         elif self.item_type == 'polygonDone':
-            print("FA")
             item_pixels = alg.draw_polygon(self.p_list, self.algorithm)
         elif self.item_type == 'ellipse':
             item_pixels = alg.draw_ellipse(self.p_list)
@@ -373,7 +370,7 @@ class MyItem(QGraphicsItem):
             w = max(x0, x1) - x
             h = max(y0, y1) - y
             return QRectF(x - 1, y - 1, w + 2, h + 2)
-        elif self.item_type == 'polygon':
+        elif self.item_type == 'polygon' or self.item_type == 'polygonDone':
             xmin = ymin = 10000
             xmax = ymax = 0
             for point in self.p_list:
