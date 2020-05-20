@@ -35,6 +35,7 @@ class MyCanvas(QGraphicsView):
         self.selected_id = ''
 
         self.status = ''
+        self.color = Qt.black
         self.paintingPolygon = False
         self.paintingCurve = False
         self.temp_algorithm = ''
@@ -59,6 +60,15 @@ class MyCanvas(QGraphicsView):
         pointPen.setStyle(Qt.SolidLine)
         pointPen.setCapStyle(Qt.SquareCap)
         self.pointPen = pointPen
+
+    def reset_canvas(self):
+        self.scene().clear()
+        self.item_dict = {}
+
+    def set_color(self):
+        colorDialog = QColorDialog()
+        self.color = colorDialog.getColor()
+
 
     def addPoint(self, x, y, painter):
         painter.drawPoint(x, y)
@@ -157,21 +167,21 @@ class MyCanvas(QGraphicsView):
         painter.setPen(Qt.red)
         painter.drawPoint(x, y)
         if self.status == 'line':
-            self.temp_item = MyItem(self.temp_id, self.status, [[x, y], [x, y]], self.temp_algorithm)
+            self.temp_item = MyItem(self.temp_id, self.status, [[x, y], [x, y]], self.color, self.temp_algorithm)
             self.scene().addItem(self.temp_item)
         elif self.status == 'polygon':
             if not self.paintingPolygon:
-                self.temp_item = MyItem(self.temp_id, self.status, [[x, y]], self.temp_algorithm)
+                self.temp_item = MyItem(self.temp_id, self.status, [[x, y]], self.color, self.temp_algorithm)
                 self.paintingPolygon = True
                 self.scene().addItem(self.temp_item)
             else:
                 self.temp_item.p_list.append([x, y])
         elif self.status == 'ellipse':
-            self.temp_item = MyItem(self.temp_id, self.status, [[x, y], [x, y]])
+            self.temp_item = MyItem(self.temp_id, self.status, [[x, y], [x, y]], self.color)
             self.scene().addItem(self.temp_item)
         elif self.status == 'curve':
             if not self.paintingCurve:
-                self.temp_item = MyItem(self.temp_id, self.status, [[x, y]], self.temp_algorithm)
+                self.temp_item = MyItem(self.temp_id, self.status, [[x, y]], self.color, self.temp_algorithm)
                 self.paintingCurve = True
                 self.scene().addItem(self.temp_item)
             else:
@@ -324,12 +334,13 @@ class MyItem(QGraphicsItem):
     """
     自定义图元类，继承自QGraphicsItem
     """
-    def __init__(self, item_id: str, item_type: str, p_list: list, algorithm: str = '', parent: QGraphicsItem = None):
+    def __init__(self, item_id: str, item_type: str, p_list: list, color, algorithm: str = '', parent: QGraphicsItem = None):
         """
 
         :param item_id: 图元ID
         :param item_type: 图元类型，'line'、'polygon'、'ellipse'、'curve'等
         :param p_list: 图元参数
+        :param color: 画笔颜色
         :param algorithm: 绘制算法，'DDA'、'Bresenham'、'Bezier'、'B-spline'等
         :param parent:
         """
@@ -337,6 +348,7 @@ class MyItem(QGraphicsItem):
         self.id = item_id           # 图元ID
         self.item_type = item_type  # 图元类型，'line'、'polygon'、'ellipse'、'curve'等
         self.p_list = p_list        # 图元参数
+        self.color = color
         self.algorithm = algorithm  # 绘制算法，'DDA'、'Bresenham'、'Bezier'、'B-spline'等
         self.selected = False
 
@@ -355,9 +367,10 @@ class MyItem(QGraphicsItem):
         elif self.item_type == 'curve':
             item_pixels = alg.draw_curve(self.p_list, self.algorithm)
         for p in item_pixels:
+            painter.setPen(self.color)
             painter.drawPoint(*p)
         if self.selected:
-            painter.setPen(QColor(255, 0, 0))
+            painter.setPen(Qt.red)
             painter.drawRect(self.boundingRect())
 
 
@@ -463,6 +476,8 @@ class MainWindow(QMainWindow):
         rotate_act.triggered.connect(self.rotate_action)
         polygon_dda_act.triggered.connect(self.polygon_dda_action)
         polygon_bresenham_act.triggered.connect(self.polygon_bresenham_action)
+        reset_canvas_act.triggered.connect(self.reset_canvas_action)
+        set_pen_act.triggered.connect(self.set_pen_action)
         self.list_widget.currentTextChanged.connect(self.canvas_widget.selection_changed)
 
         # 设置主窗口的布局
@@ -553,6 +568,17 @@ class MainWindow(QMainWindow):
         self.list_widget.clearSelection()
         self.canvas_widget.clear_selection()
 
+    def reset_canvas_action(self):
+        self.canvas_widget.reset_canvas()
+        self.statusBar().showMessage('清空画布')
+        self.list_widget.clearSelection()
+        self.canvas_widget.clear_selection()
+
+    def set_pen_action(self):
+        self.canvas_widget.set_color()
+        self.statusBar().showMessage('设置画笔')
+        self.list_widget.clearSelection()
+        self.canvas_widget.clear_selection()
 
     def clip_cohen_sutherland_action(self):
         if not self.canvas_widget.start_clip('Cohen-Sutherland'):
