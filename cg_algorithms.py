@@ -161,14 +161,26 @@ def bezier(n, i, t):
 
 def bspline(u):
     if 0 <= u and u < 1:
-        return pow(u,3) / 6
+        return pow(u, 3) / 6
     elif 1 <= u and u < 2:
-        return (-3 * pow(u-1, 3) + 3 * pow(u-1, 2) + 3*(u-1) + 1) / 6
+        return (-3 * pow(u - 1, 3) + 3 * pow(u - 1, 2) + 3 * (u - 1) + 1) / 6
     elif 2 <= u and u < 3:
-        return (3 * pow(u-2, 3) - 6 * pow(u-2, 2) + 4) / 6
+        return (3 * pow(u - 2, 3) - 6 * pow(u - 2, 2) + 4) / 6
     elif 3 <= u and u < 4:
-        return pow(4-u, 3) / 6
+        return pow(4 - u, 3) / 6
     return 0
+
+def bspline0(u):
+    return (-pow(u, 3) + 3 * pow(u, 2) - 3 * u + 1) / 6
+
+def bspline1(u):
+    return (3 * pow(u, 3) - 6 * pow(u, 2) + 4) / 6
+
+def bspline2(u):
+    return (-3 * pow(u,3) + 3 * pow(u, 2) + 3 * u + 1) / 6
+
+def bspline3(u):
+    return pow(u, 3) / 6
 
 def draw_curve(p_list, algorithm):
     """绘制曲线
@@ -191,7 +203,8 @@ def draw_curve(p_list, algorithm):
             t += interval
             result.append((int(x), int(y)))
     elif algorithm == 'B-spline':
-        num = 256 * len(p_list)
+        print(p_list)
+        num = 32 * len(p_list)
         interval = 1 / num
         u = 3
         while u < len(p_list) + 1:
@@ -202,6 +215,32 @@ def draw_curve(p_list, algorithm):
                 y += coeff * point[1]
             u += interval
             result.append((int(x), int(y)))
+
+        # if len(p_list) == 2:
+        #     u = 1 / 256
+        #     while u < 1:
+        #         x = p_list[0][0] * bspline0(u) + p_list[1][0] * bspline1(u)
+        #         y = p_list[0][1] * bspline0(u) + p_list[1][1] * bspline1(u)
+        #         u += 1 / 256
+        #         result.append((int(x), int(y)))
+        # if len(p_list) == 3:
+        #     u = 1 / 384
+        #     while u < 1:
+        #         x = p_list[0][0] * bspline0(u) + p_list[1][0] * bspline1(u) + p_list[2][0] * bspline2(u)
+        #         y = p_list[0][1] * bspline0(u) + p_list[1][1] * bspline1(u) + p_list[2][1] * bspline2(u)
+        #         u += 1 / 384
+        #         result.append((int(x), int(y)))
+        # else:
+        #     for i in range( len(p_list) - 3 ):
+        #         num = 128 * len(p_list)
+        #         u = interval = 1 / num
+        #         while u < 1:
+        #             x = p_list[i][0] * bspline0(u) + p_list[i + 1][0] * bspline1(u) + p_list[i + 2][0] * bspline2(u) + \
+        #                 p_list[i + 3][0] * bspline3(u)
+        #             y = p_list[i][1] * bspline0(u) + p_list[i + 1][1] * bspline1(u) + p_list[i + 2][1] * bspline2(u) + \
+        #                 p_list[i + 3][1] * bspline3(u)
+        #             u += interval
+        #             result.append((int(x), int(y)))
     return result
 
 
