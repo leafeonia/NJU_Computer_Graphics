@@ -41,25 +41,39 @@ class MyCanvas(QGraphicsView):
         self.temp_algorithm = ''
         self.temp_id = ''
         self.temp_item = None
-        self.clipPoint1 = ''
-        self.clipPoint2 = ''
-        self.translateOrigin = ''
-        self.translate_p_list = []
+        self.clipPoint1 = [-1, -1]
+        self.clipPoint2 = [-1, -1]
+        self.translateOrigin = [-1, -1]
 
-        # scale
         self.temp_plist = []
         self.corePoint = [-1, -1]
+
+        # scale
         self.scalePoint = [-1, -1]
 
         # rotate
         self.rotatePoint = [-1, -1]
 
-        pointPen = QPen()
-        pointPen.setColor(QColor(0, 0, 0))
-        pointPen.setWidth(1)
-        pointPen.setStyle(Qt.SolidLine)
-        pointPen.setCapStyle(Qt.SquareCap)
-        self.pointPen = pointPen
+        # helperPoints
+        self.helperPoints_item = MyItem("helperPoints", "helperPoints", [])
+        self.scene().addItem(self.helperPoints_item)
+
+
+    def checkHelper(self):
+        if self.status == 'rotate':
+            if self.rotatePoint != [-1, -1]:
+                self.helperPoints_item.p_list.append(self.rotatePoint)
+                self.helperPoints_item.p_list.append(self.corePoint)
+        elif self.status == 'translate':
+            if self.translateOrigin != [-1, -1]:
+                self.helperPoints_item.p_list.append(self.translateOrigin)
+        elif self.status == 'scale':
+            if self.scalePoint != [-1, -1]:
+                self.helperPoints_item.p_list.append(self.scalePoint)
+                self.helperPoints_item.p_list.append(self.corePoint)
+        elif self.status == 'clip':
+            if self.clipPoint1 != [-1, -1]:
+                self.helperPoints_item.p_list.append(self.clipPoint1)
 
     def reset_canvas(self):
         self.scene().clear()
@@ -69,14 +83,6 @@ class MyCanvas(QGraphicsView):
         colorDialog = QColorDialog()
         self.color = colorDialog.getColor()
 
-
-    def addPoint(self, x, y, painter):
-        painter.drawPoint(x, y)
-        painter.setPen(self.pointPen)
-        painter.drawLine(x - 2, y - 2, x - 2, y + 2)
-        painter.drawLine(x + 2, y - 2, x + 2, y + 2)
-        painter.drawLine(x - 2, y - 2, x + 2, y - 2)
-        painter.drawLine(x - 2, y + 2, x + 2, y + 2)
 
     def start_draw_line(self, algorithm, item_id):
         self.status = 'line'
@@ -115,7 +121,7 @@ class MyCanvas(QGraphicsView):
         else:
             self.temp_id = self.selected_id
             self.temp_item = self.item_dict[self.temp_id]
-            self.translate_p_list = self.temp_item.p_list[:]
+            self.temp_plist = self.temp_item.p_list[:]
             return True
 
     def start_scale(self):
@@ -141,15 +147,19 @@ class MyCanvas(QGraphicsView):
             return True
 
     def finish_draw(self):
+        self.helperPoints_item.p_list = []
         self.temp_id = self.main_window.get_id()
 
     def clear_selection(self):
+        self.helperPoints_item.p_list = []
         if self.selected_id != '':
             self.item_dict[self.selected_id].selected = False
             self.selected_id = ''
 
+
     def selection_changed(self, selected):
         self.main_window.statusBar().showMessage('图元选择： %s' % selected)
+        self.helperPoints_item.p_list = []
         if self.selected_id != '':
             self.item_dict[self.selected_id].selected = False
             self.item_dict[self.selected_id].update()
@@ -163,9 +173,6 @@ class MyCanvas(QGraphicsView):
         pos = self.mapToScene(event.localPos().toPoint())
         x = int(pos.x())
         y = int(pos.y())
-        painter = QPainter()
-        painter.setPen(Qt.red)
-        painter.drawPoint(x, y)
         if self.status == 'line':
             self.temp_item = MyItem(self.temp_id, self.status, [[x, y], [x, y]], self.color, self.temp_algorithm)
             self.scene().addItem(self.temp_item)
@@ -200,6 +207,8 @@ class MyCanvas(QGraphicsView):
                 self.rotatePoint = [x, y]
                 self.temp_plist = self.temp_item.p_list[:]
                 self.corePoint = self.temp_item.corePoint()
+        self.helperPoints_item.p_list = self.temp_item.p_list
+        self.checkHelper()
         self.updateScene([self.sceneRect()])
         super().mousePressEvent(event)
 
@@ -242,7 +251,7 @@ class MyCanvas(QGraphicsView):
         elif self.status == 'ellipse':
             self.temp_item.p_list[1] = [x, y]
         elif self.status == 'translate':
-            self.temp_item.p_list = alg.translate(self.translate_p_list, x - self.translateOrigin[0], y - self.translateOrigin[1])
+            self.temp_item.p_list = alg.translate(self.temp_plist, x - self.translateOrigin[0], y - self.translateOrigin[1])
         elif self.status == 'scale':
             if self.scalePoint != [-1, -1]:
                 a1 = self.corePoint[0] - self.scalePoint[0]
@@ -289,6 +298,8 @@ class MyCanvas(QGraphicsView):
                 if flip:
                     r = 360 - r
                 self.temp_item.p_list = alg.rotate(self.temp_plist, self.corePoint[0], self.corePoint[1], r)
+        self.helperPoints_item.p_list = self.temp_item.p_list
+        self.checkHelper()
         self.updateScene([self.sceneRect()])
         super().mouseMoveEvent(event)
 
@@ -334,7 +345,7 @@ class MyItem(QGraphicsItem):
     """
     自定义图元类，继承自QGraphicsItem
     """
-    def __init__(self, item_id: str, item_type: str, p_list: list, color, algorithm: str = '', parent: QGraphicsItem = None):
+    def __init__(self, item_id: str, item_type: str, p_list: list, color: QColor = QColor(0, 0, 0), algorithm: str = '', parent: QGraphicsItem = None):
         """
 
         :param item_id: 图元ID
@@ -352,7 +363,25 @@ class MyItem(QGraphicsItem):
         self.algorithm = algorithm  # 绘制算法，'DDA'、'Bresenham'、'Bezier'、'B-spline'等
         self.selected = False
 
+        pointPen = QPen()
+        pointPen.setColor(QColor(0, 0, 0))
+        pointPen.setWidth(1)
+        pointPen.setStyle(Qt.SolidLine)
+        pointPen.setCapStyle(Qt.SquareCap)
+        self.pointPen = pointPen
+
     def paint(self, painter: QPainter, option: QStyleOptionGraphicsItem, widget: Optional[QWidget] = ...) -> None:
+        if self.item_type == 'helperPoints':
+            for point in self.p_list:
+                x, y = point[0], point[1]
+                painter.drawPoint(x, y)
+                painter.setPen(self.pointPen)
+                painter.drawLine(x - 2, y - 2, x - 2, y + 2)
+                painter.drawLine(x + 2, y - 2, x + 2, y + 2)
+                painter.drawLine(x - 2, y - 2, x + 2, y - 2)
+                painter.drawLine(x - 2, y + 2, x + 2, y + 2)
+            return
+
         if self.item_type == 'line':
             item_pixels = alg.draw_line(self.p_list, self.algorithm)
         elif self.item_type == 'polygon':
@@ -383,15 +412,6 @@ class MyItem(QGraphicsItem):
             w = max(x0, x1) - x
             h = max(y0, y1) - y
             return QRectF(x - 1, y - 1, w + 2, h + 2)
-        elif self.item_type == 'polygon' or self.item_type == 'polygonDone':
-            xmin = ymin = 10000
-            xmax = ymax = 0
-            for point in self.p_list:
-                xmin = min(point[0], xmin)
-                xmax = max(point[0], xmax)
-                ymin = min(point[1], ymin)
-                ymax = max(point[1], ymax)
-            return QRectF(xmin, ymin, xmax - xmin, ymax - ymin)
         elif self.item_type == 'ellipse':
             x0, y0 = self.p_list[0]
             x1, y1 = self.p_list[1]
@@ -400,7 +420,7 @@ class MyItem(QGraphicsItem):
             w = max(x0, x1) - x
             h = max(y0, y1) - y
             return QRectF(x - 1, y - 1, w + 2, h + 2)
-        elif self.item_type == 'curve':
+        elif self.item_type == 'curve' or self.item_type == 'polygon' or self.item_type == 'polygonDone':
             xmin = ymin = 10000
             xmax = ymax = 0
             for point in self.p_list:
@@ -409,6 +429,15 @@ class MyItem(QGraphicsItem):
                 ymin = min(point[1], ymin)
                 ymax = max(point[1], ymax)
             return QRectF(xmin, ymin, xmax - xmin, ymax - ymin)
+        elif self.item_type == 'helperPoints':
+            xmin = ymin = 10000
+            xmax = ymax = 0
+            for point in self.p_list:
+                xmin = min(point[0], xmin)
+                xmax = max(point[0], xmax)
+                ymin = min(point[1], ymin)
+                ymax = max(point[1], ymax)
+            return QRectF(xmin - 2, ymin - 2, xmax - xmin + 4, ymax - ymin + 4)
 
     def corePoint(self):
         bdRect = self.boundingRect()
