@@ -58,22 +58,26 @@ class MyCanvas(QGraphicsView):
         self.helperPoints_item = MyItem("helperPoints", "helperPoints", [])
         self.scene().addItem(self.helperPoints_item)
 
+    def clearSettings(self):
+        self.helperPoints_item.p_list = []
+        self.translateOrigin = self.corePoint = self.scalePoint = self.rotatePoint = self.clipPoint1 = self.clipPoint2 = [-1, -1]
 
     def checkHelper(self):
         if self.status == 'rotate':
             if self.rotatePoint != [-1, -1]:
                 self.helperPoints_item.p_list.append(self.rotatePoint)
-                self.helperPoints_item.p_list.append(self.corePoint)
-        elif self.status == 'translate':
-            if self.translateOrigin != [-1, -1]:
-                self.helperPoints_item.p_list.append(self.translateOrigin)
+                if self.temp_item is not None:
+                    self.helperPoints_item.p_list.append(self.temp_item.corePoint())
         elif self.status == 'scale':
             if self.scalePoint != [-1, -1]:
                 self.helperPoints_item.p_list.append(self.scalePoint)
-                self.helperPoints_item.p_list.append(self.corePoint)
+                if self.temp_item is not None:
+                    self.helperPoints_item.p_list.append(self.temp_item.corePoint())
         elif self.status == 'clip':
             if self.clipPoint1 != [-1, -1]:
                 self.helperPoints_item.p_list.append(self.clipPoint1)
+            if self.clipPoint2 != [-1, -1]:
+                self.helperPoints_item.p_list.append(self.clipPoint2)
 
     def reset_canvas(self):
         self.scene().clear()
@@ -105,6 +109,7 @@ class MyCanvas(QGraphicsView):
 
     def start_clip(self, algorithm):
         self.status = 'clip'
+        self.clearSettings()
         self.temp_algorithm = algorithm
         if self.selected_id == '' or self.item_dict[self.selected_id].item_type != 'line':
             self.status = ''
@@ -115,6 +120,7 @@ class MyCanvas(QGraphicsView):
 
     def start_translate(self):
         self.status = 'translate'
+        self.clearSettings()
         if self.selected_id == '':
             self.status = ''
             return False
@@ -122,10 +128,12 @@ class MyCanvas(QGraphicsView):
             self.temp_id = self.selected_id
             self.temp_item = self.item_dict[self.temp_id]
             self.temp_plist = self.temp_item.p_list[:]
+            self.translateOrigin = [-1, -1]
             return True
 
     def start_scale(self):
         self.status = 'scale'
+        self.clearSettings()
         if self.selected_id == '':
             self.status = ''
             return False
@@ -137,6 +145,7 @@ class MyCanvas(QGraphicsView):
 
     def start_rotate(self):
         self.status = 'rotate'
+        self.clearSettings()
         if self.selected_id == '':
             self.status = ''
             return False
@@ -151,7 +160,7 @@ class MyCanvas(QGraphicsView):
         self.temp_id = self.main_window.get_id()
 
     def clear_selection(self):
-        self.helperPoints_item.p_list = []
+        self.clearSettings()
         if self.selected_id != '':
             self.item_dict[self.selected_id].selected = False
             self.selected_id = ''
@@ -159,13 +168,14 @@ class MyCanvas(QGraphicsView):
 
     def selection_changed(self, selected):
         self.main_window.statusBar().showMessage('图元选择： %s' % selected)
-        self.helperPoints_item.p_list = []
+        self.clearSettings()
         if self.selected_id != '':
             self.item_dict[self.selected_id].selected = False
             self.item_dict[self.selected_id].update()
         self.selected_id = selected
         self.item_dict[selected].selected = True
         self.item_dict[selected].update()
+        self.temp_item = self.item_dict[selected]
         self.status = ''
         self.updateScene([self.sceneRect()])
 
@@ -207,7 +217,7 @@ class MyCanvas(QGraphicsView):
                 self.rotatePoint = [x, y]
                 self.temp_plist = self.temp_item.p_list[:]
                 self.corePoint = self.temp_item.corePoint()
-        self.helperPoints_item.p_list = self.temp_item.p_list
+        self.helperPoints_item.p_list = self.temp_item.p_list[:]
         self.checkHelper()
         self.updateScene([self.sceneRect()])
         super().mousePressEvent(event)
@@ -223,10 +233,10 @@ class MyCanvas(QGraphicsView):
             self.finish_draw()
         elif self.status == 'polygon':
             self.temp_item.item_type = 'polygonDone'
-            self.temp_item.update()
             self.item_dict[self.temp_id] = self.temp_item
             self.list_widget.addItem(self.temp_id)
             self.paintingPolygon = False
+            self.updateScene([self.sceneRect()])
             self.finish_draw()
 
     def projectPointToLine(self, a, b, point):
@@ -298,7 +308,7 @@ class MyCanvas(QGraphicsView):
                 if flip:
                     r = 360 - r
                 self.temp_item.p_list = alg.rotate(self.temp_plist, self.corePoint[0], self.corePoint[1], r)
-        self.helperPoints_item.p_list = self.temp_item.p_list
+        self.helperPoints_item.p_list = self.temp_item.p_list[:]
         self.checkHelper()
         self.updateScene([self.sceneRect()])
         super().mouseMoveEvent(event)
@@ -335,9 +345,6 @@ class MyCanvas(QGraphicsView):
         elif self.status == 'translate':
             self.status = ''
             self.temp_id = ''
-
-
-
         super().mouseReleaseEvent(event)
 
 
