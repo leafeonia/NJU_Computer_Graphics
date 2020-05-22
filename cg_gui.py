@@ -289,16 +289,16 @@ class MyCanvas(QGraphicsView):
                 x2, y2 = self.rotatePoint[0] - x1, self.rotatePoint[1] - y1
                 x3, y3 = x - x1, y - y1
                 flip = False
-                if x2 == x1:
-                    if (y2 > y1 and x3 < x1) or (y2 < y1 and x3 > x1):
+                if x2 == 0:
+                    if x3 < 0:
                         flip = True
-                elif x2 > x1:
-                    k = y2 / x2
-                    if y3 > k * x3:
+                elif x2 < 0:
+                    k = -y2 / x2
+                    if -y3 < k * x3:
                         flip = True
-                elif x2 < x1:
-                    k = y2 / x2
-                    if y3 < k * x3:
+                elif x2 > 0:
+                    k = -y2 / x2
+                    if -y3 > k * x3:
                         flip = True
                 a = math.sqrt(pow(x3 - x2, 2) + pow(y3 - y2, 2))
                 b = math.sqrt(x2 * x2 + y2 * y2)
