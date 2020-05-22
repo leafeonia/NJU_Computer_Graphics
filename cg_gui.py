@@ -79,9 +79,23 @@ class MyCanvas(QGraphicsView):
             if self.clipPoint2 != [-1, -1]:
                 self.helperPoints_item.p_list.append(self.clipPoint2)
 
+    def saveImage(self):
+        # image = QImage(self.scene().sceneRect().size().toSize(), QImage.Format_RGB32)
+        # painter = QPainter(image)
+        # self.scene().render(painter, self.scene().sceneRect())
+        # image.save("save.png")
+        self.scene().clearSelection()
+        pixmap = self.grab(self.sceneRect().toRect())
+        pixmap.save("save.png")
+
     def reset_canvas(self):
+        self.clear_selection()
+        self.clearSettings()
+        self.scene().removeItem(self.helperPoints_item)
         self.scene().clear()
+        self.scene().addItem(self.helperPoints_item)
         self.item_dict = {}
+
 
     def set_color(self):
         colorDialog = QColorDialog()
@@ -467,7 +481,7 @@ class MainWindow(QMainWindow):
         self.scene = QGraphicsScene(self)
         self.scene.setSceneRect(0, 0, 600, 600)
         self.canvas_widget = MyCanvas(self.scene, self)
-        self.canvas_widget.setFixedSize(600, 600)
+        self.canvas_widget.setFixedSize(650, 650)
         self.canvas_widget.main_window = self
         self.canvas_widget.list_widget = self.list_widget
 
@@ -476,6 +490,7 @@ class MainWindow(QMainWindow):
         file_menu = menubar.addMenu('文件')
         set_pen_act = file_menu.addAction('设置画笔')
         reset_canvas_act = file_menu.addAction('重置画布')
+        save_canvas_act = file_menu.addAction('保存画布')
         exit_act = file_menu.addAction('退出')
         draw_menu = menubar.addMenu('绘制')
         line_menu = draw_menu.addMenu('线段')
@@ -514,6 +529,7 @@ class MainWindow(QMainWindow):
         polygon_bresenham_act.triggered.connect(self.polygon_bresenham_action)
         reset_canvas_act.triggered.connect(self.reset_canvas_action)
         set_pen_act.triggered.connect(self.set_pen_action)
+        save_canvas_act.triggered.connect(self.save_canvas_action)
         self.list_widget.currentTextChanged.connect(self.canvas_widget.selection_changed)
 
         # 设置主窗口的布局
@@ -613,8 +629,9 @@ class MainWindow(QMainWindow):
     def set_pen_action(self):
         self.canvas_widget.set_color()
         self.statusBar().showMessage('设置画笔')
-        self.list_widget.clearSelection()
-        self.canvas_widget.clear_selection()
+
+    def save_canvas_action(self):
+        self.canvas_widget.saveImage()
 
     def clip_cohen_sutherland_action(self):
         if not self.canvas_widget.start_clip('Cohen-Sutherland'):
