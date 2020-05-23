@@ -91,7 +91,6 @@ class MyCanvas(QGraphicsView):
 
     def reset_canvas(self):
         self.clear_selection()
-        self.clearSettings()
         self.scene().removeItem(self.helperPoints_item)
         self.scene().clear()
         self.scene().addItem(self.helperPoints_item)
@@ -182,8 +181,9 @@ class MyCanvas(QGraphicsView):
             self.item_dict[self.selected_id].selected = False
             self.selected_id = ''
 
-
     def selection_changed(self, selected):
+        if self.selected_id == selected:
+            return
         self.main_window.statusBar().showMessage('图元选择： %s' % selected)
         self.clearSettings()
         if self.selected_id != '':
@@ -537,6 +537,17 @@ class MainWindow(QMainWindow):
         saveCanvas.triggered.connect(self.save_canvas_action)
         toolBar.addAction(saveCanvas)
 
+        setColor = QAction(QIcon("./icon/palette.png"), "选择颜色", toolBar)
+        setColor.setStatusTip("选择颜色")
+        setColor.triggered.connect(self.set_pen_action)
+        toolBar.addAction(setColor)
+
+        colorViewer = QToolButton(self)
+        colorViewer.setFixedHeight(30)
+        colorViewer.setFixedWidth(30)
+        colorViewer.setStyleSheet("margin: 5px; background-color: red; border-radius: 5px;")
+        toolBar.addWidget(colorViewer)
+
         toolBar.addSeparator()
 
         drawLineBtn = QToolButton(self)
@@ -589,7 +600,10 @@ class MainWindow(QMainWindow):
             toolBar.addWidget(button)
             group.addButton(button)
 
+        toolBar.addSeparator()
+
         self.comboBox = QComboBox()
+        self.comboBox.setFixedWidth(150)
         self.comboBox.highlighted[str].connect(self.canvas_widget.set_alg)
 
 
@@ -633,32 +647,35 @@ class MainWindow(QMainWindow):
         return _id
 
     def line_action(self):
+        self.list_widget.clearSelection()
+        self.canvas_widget.clear_selection()
         self.comboBox.clear()
         self.comboBox.addItem("DDA")
         self.comboBox.addItem("Bresenham")
         self.comboBox.addItem("Naive")
         self.canvas_widget.start_draw_line('DDA', self.get_id())
         self.statusBar().showMessage('绘制线段')
-        self.list_widget.clearSelection()
-        self.canvas_widget.clear_selection()
+
 
     def polygon_action(self):
+        self.list_widget.clearSelection()
+        self.canvas_widget.clear_selection()
         self.comboBox.clear()
         self.comboBox.addItem("DDA")
         self.comboBox.addItem("Bresenham")
         self.canvas_widget.start_draw_polygon('DDA', self.get_id())
         self.statusBar().showMessage('绘制多边形')
-        self.list_widget.clearSelection()
-        self.canvas_widget.clear_selection()
+
 
     def curve_action(self):
+        self.list_widget.clearSelection()
+        self.canvas_widget.clear_selection()
         self.comboBox.clear()
         self.comboBox.addItem("Bezier")
         self.comboBox.addItem("B-spline")
         self.canvas_widget.start_draw_curve('Bezier', self.get_id())
         self.statusBar().showMessage('绘制曲线')
-        self.list_widget.clearSelection()
-        self.canvas_widget.clear_selection()
+
 
     def clip_action(self):
         self.comboBox.clear()
@@ -666,8 +683,6 @@ class MainWindow(QMainWindow):
         self.comboBox.addItem("Liang-Barsky")
         self.canvas_widget.start_clip('Cohen-Sutherland')
         self.statusBar().showMessage('线段裁剪')
-        self.list_widget.clearSelection()
-        self.canvas_widget.clear_selection()
 
     def line_naive_action(self):
         self.canvas_widget.start_draw_line('Naive', self.get_id())
@@ -700,6 +715,9 @@ class MainWindow(QMainWindow):
         self.canvas_widget.clear_selection()
 
     def ellipse_action(self):
+        self.list_widget.clearSelection()
+        self.canvas_widget.clear_selection()
+        self.comboBox.clear()
         self.canvas_widget.start_draw_ellipse(self.get_id())
         self.statusBar().showMessage('绘制椭圆')
         self.list_widget.clearSelection()
@@ -718,28 +736,25 @@ class MainWindow(QMainWindow):
         self.canvas_widget.clear_selection()
 
     def translate_action(self):
+        self.comboBox.clear()
         if not self.canvas_widget.start_translate():
             self.statusBar().showMessage('请选中图元')
         else:
             self.statusBar().showMessage('图元平移')
-        self.list_widget.clearSelection()
-        self.canvas_widget.clear_selection()
 
     def scale_action(self):
+        self.comboBox.clear()
         if not self.canvas_widget.start_scale():
             self.statusBar().showMessage('请选中图元')
         else:
             self.statusBar().showMessage('图元缩放')
-        self.list_widget.clearSelection()
-        self.canvas_widget.clear_selection()
 
     def rotate_action(self):
+        self.comboBox.clear()
         if not self.canvas_widget.start_rotate():
             self.statusBar().showMessage('请选中图元')
         else:
             self.statusBar().showMessage('图元旋转')
-        self.list_widget.clearSelection()
-        self.canvas_widget.clear_selection()
 
     def reset_canvas_action(self):
         self.canvas_widget.reset_canvas()
@@ -749,7 +764,7 @@ class MainWindow(QMainWindow):
 
     def set_pen_action(self):
         self.canvas_widget.set_color()
-        self.statusBar().showMessage('设置画笔')
+        self.statusBar().showMessage('设置颜色')
 
     def save_canvas_action(self):
         self.canvas_widget.saveImage()

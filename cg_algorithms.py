@@ -182,6 +182,13 @@ def bspline2(u):
 def bspline3(u):
     return pow(u, 3) / 6
 
+def N(i, j, t):
+    if j == 0:
+        if i <= t and t < i+1:
+            return 1
+        return 0
+    return (t-i) / j * N(i, j-1, t) + (i+j+1-t) / j * N(i+1, j-1, t)
+
 def draw_curve(p_list, algorithm):
     """绘制曲线
 
@@ -203,17 +210,29 @@ def draw_curve(p_list, algorithm):
             t += interval
             result.append((int(x), int(y)))
     elif algorithm == 'B-spline':
-        num = 64 * len(p_list)
-        interval = 1 / num
-        u = 3
-        while u < len(p_list) + 1:
+        t = 3
+        m = 3 + len(p_list)
+        interval = 1 / (64 * len(p_list))
+        while t < m - 3:
             x = y = 0
-            for j, point in enumerate(p_list):
-                coeff = bspline(u - j)
-                x += coeff * point[0]
-                y += coeff * point[1]
-            u += interval
+            for i, point in enumerate(p_list):
+                coeff = N(i, 3, t)
+                x += point[0] * coeff
+                y += point[1] * coeff
+            t += interval
             result.append((int(x), int(y)))
+
+        # num = 64 * len(p_list)
+        # interval = 1 / num
+        # u = 3
+        # while u < len(p_list) + 1:
+        #     x = y = 0
+        #     for j, point in enumerate(p_list):
+        #         coeff = bspline(u - j)
+        #         x += coeff * point[0]
+        #         y += coeff * point[1]
+        #     u += interval
+        #     result.append((int(x), int(y)))
 
         # if len(p_list) == 2:
         #     u = 1 / 256
