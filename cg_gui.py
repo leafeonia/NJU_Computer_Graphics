@@ -64,10 +64,8 @@ class MyCanvas(QGraphicsView):
 
     def checkHelper(self):
         if self.status == 'rotate':
-            if self.rotatePoint != [-1, -1]:
-                self.helperPoints_item.p_list.append(self.rotatePoint)
-                if self.temp_item is not None:
-                    self.helperPoints_item.p_list.append(self.temp_item.corePoint())
+            if self.corePoint != [-1, -1]:
+                self.helperPoints_item.p_list.append(self.corePoint)
         elif self.status == 'scale':
             if self.scalePoint != [-1, -1]:
                 self.helperPoints_item.p_list.append(self.scalePoint)
@@ -80,13 +78,16 @@ class MyCanvas(QGraphicsView):
                 self.helperPoints_item.p_list.append(self.clipPoint2)
 
     def saveImage(self):
-        # image = QImage(self.scene().sceneRect().size().toSize(), QImage.Format_RGB32)
-        # painter = QPainter(image)
-        # self.scene().render(painter, self.scene().sceneRect())
-        # image.save("save.png")
+        filename = QFileDialog.getSaveFileName(self, "保存画布", "myGreatPainting",
+                                              "Bitmap File Format (*.bmp);;"
+                                              "Portable Network Graphics (*.png);;"
+                                              "Joint Photographic Experts Group (*.jpg);;"
+                                              "Joint Photographic Experts Group (*.jpeg)")
+        if filename[0] == '':
+            return
         self.scene().clearSelection()
         pixmap = self.grab(self.sceneRect().toRect())
-        pixmap.save("save.png")
+        pixmap.save(filename[0])
 
     def reset_canvas(self):
         self.clear_selection()
@@ -101,6 +102,8 @@ class MyCanvas(QGraphicsView):
         colorDialog = QColorDialog()
         self.color = colorDialog.getColor()
 
+    def set_alg(self, algorithm):
+        self.temp_algorithm = algorithm
 
     def start_draw_line(self, algorithm, item_id):
         self.status = 'line'
@@ -126,7 +129,7 @@ class MyCanvas(QGraphicsView):
         self.clearSettings()
         self.temp_algorithm = algorithm
         if self.selected_id == '' or self.item_dict[self.selected_id].item_type != 'line':
-            self.status = ''
+            # self.status = ''
             return False
         else:
             self.temp_id = self.selected_id
@@ -136,7 +139,7 @@ class MyCanvas(QGraphicsView):
         self.status = 'translate'
         self.clearSettings()
         if self.selected_id == '':
-            self.status = ''
+            # self.status = ''
             return False
         else:
             self.temp_id = self.selected_id
@@ -149,7 +152,7 @@ class MyCanvas(QGraphicsView):
         self.status = 'scale'
         self.clearSettings()
         if self.selected_id == '':
-            self.status = ''
+            # self.status = ''
             return False
         else:
             self.temp_id = self.selected_id
@@ -161,7 +164,7 @@ class MyCanvas(QGraphicsView):
         self.status = 'rotate'
         self.clearSettings()
         if self.selected_id == '':
-            self.status = ''
+            # self.status = ''
             return False
         else:
             self.temp_id = self.selected_id
@@ -190,7 +193,7 @@ class MyCanvas(QGraphicsView):
         self.item_dict[selected].selected = True
         self.item_dict[selected].update()
         self.temp_item = self.item_dict[selected]
-        self.status = ''
+        # self.status = ''
         self.updateScene([self.sceneRect()])
 
     def mousePressEvent(self, event: QMouseEvent) -> None:
@@ -217,7 +220,7 @@ class MyCanvas(QGraphicsView):
                 self.scene().addItem(self.temp_item)
             else:
                 self.temp_item.p_list.append([x, y])
-        elif self.status == 'clip':
+        elif self.status == 'clip' and self.temp_item.item_type == 'line':
             self.clipPoint1 = [x, y]
         elif self.status == 'translate':
             self.translateOrigin = [x, y]
@@ -336,29 +339,30 @@ class MyCanvas(QGraphicsView):
             self.item_dict[self.temp_id] = self.temp_item
             self.list_widget.addItem(self.temp_id)
             self.finish_draw()
-        elif self.status == 'clip':
+        elif self.status == 'clip' and self.temp_item.item_type == 'line':
             pos = self.mapToScene(event.localPos().toPoint())
             x = int(pos.x())
             y = int(pos.y())
             self.clipPoint2 = [x, y]
-            clipped_list = alg.clip(self.item_dict[self.temp_id].p_list,
+            clipped_list = alg.clip(self.temp_item.p_list,
                                     min(self.clipPoint1[0], self.clipPoint2[0]),
                                     min(self.clipPoint1[1], self.clipPoint2[1]),
                                     max(self.clipPoint1[0], self.clipPoint2[0]),
                                     max(self.clipPoint1[1], self.clipPoint2[1]),
                                     self.temp_algorithm)
             if clipped_list == '':
-                self.item_dict[self.temp_id] = ''
+                self.temp_item = ''
             else:
-                self.item_dict[self.temp_id].p_list = clipped_list
-                self.item_dict[self.temp_id].update()
-            self.status = ''
+                self.temp_item.p_list = clipped_list
+                self.temp_item.update()
+            # self.status = ''
             self.temp_id = ''
             self.updateScene([self.sceneRect()])
 
-        elif self.status == 'translate':
-            self.status = ''
+        elif self.status == 'translate' or self.status == 'rotate' or self.status == 'scale':
+            # self.status = ''
             self.temp_id = ''
+            self.temp_plist = self.temp_item.p_list[:]
         super().mouseReleaseEvent(event)
 
 
@@ -481,7 +485,7 @@ class MainWindow(QMainWindow):
         self.scene = QGraphicsScene(self)
         self.scene.setSceneRect(0, 0, 600, 600)
         self.canvas_widget = MyCanvas(self.scene, self)
-        self.canvas_widget.setFixedSize(650, 650)
+        self.canvas_widget.setFixedSize(602, 602)
         self.canvas_widget.main_window = self
         self.canvas_widget.list_widget = self.list_widget
 
@@ -511,6 +515,86 @@ class MainWindow(QMainWindow):
         clip_menu = edit_menu.addMenu('裁剪')
         clip_cohen_sutherland_act = clip_menu.addAction('Cohen-Sutherland')
         clip_liang_barsky_act = clip_menu.addAction('Liang-Barsky')
+
+        # 工具栏
+        toolBar = QToolBar()
+        self.addToolBar(toolBar)
+
+        newCanvas = QAction(QIcon("./icon/new.png"), "重置画布", toolBar)
+        newCanvas.setStatusTip("重置画布")
+        newCanvas.triggered.connect(self.reset_canvas_action)
+        toolBar.addAction(newCanvas)
+
+        # newCanvas = QToolButton(self)
+        # newCanvas.setIcon(QIcon("./icon/new.png"))
+        # newCanvas.setCheckable(True)
+        # newCanvas.toggled.connect(self.reset_canvas_action)
+        # toolBar.addWidget(newCanvas)
+
+
+        saveCanvas = QAction(QIcon("./icon/saveas.png"), "保存画布", toolBar)
+        saveCanvas.setStatusTip("保存画布")
+        saveCanvas.triggered.connect(self.save_canvas_action)
+        toolBar.addAction(saveCanvas)
+
+        toolBar.addSeparator()
+
+        drawLineBtn = QToolButton(self)
+        drawLineBtn.setIcon(QIcon("./icon/line.png"))
+        drawLineBtn.setStatusTip("绘制线段")
+        drawLineBtn.toggled.connect(self.line_action)
+        drawPolygonBtn = QToolButton(self)
+        drawPolygonBtn.setIcon(QIcon("./icon/polygon.png"))
+        drawPolygonBtn.setStatusTip("绘制多边形")
+        drawPolygonBtn.toggled.connect(self.polygon_action)
+        drawEllipseBtn = QToolButton(self)
+        drawEllipseBtn.setIcon(QIcon("./icon/ellipse.png"))
+        drawEllipseBtn.setStatusTip("绘制椭圆")
+        drawEllipseBtn.toggled.connect(self.ellipse_action)
+        drawCurveBtn = QToolButton(self)
+        drawCurveBtn.setIcon(QIcon("./icon/curve.png"))
+        drawCurveBtn.setStatusTip("绘制曲线")
+        drawCurveBtn.toggled.connect(self.curve_action)
+        translateBtn = QToolButton(self)
+        translateBtn.setIcon(QIcon("./icon/select.png"))
+        translateBtn.setStatusTip("图元平移")
+        translateBtn.toggled.connect(self.translate_action)
+        rotateBtn = QToolButton(self)
+        rotateBtn.setIcon(QIcon("./icon/rotate.png"))
+        rotateBtn.setStatusTip("图元旋转")
+        rotateBtn.toggled.connect(self.rotate_action)
+        scaleBtn = QToolButton(self)
+        scaleBtn.setIcon(QIcon("./icon/scale.png"))
+        scaleBtn.setStatusTip("图元缩放")
+        scaleBtn.toggled.connect(self.scale_action)
+        clipBtn = QToolButton(self)
+        clipBtn.setIcon(QIcon("./icon/clip.png"))
+        clipBtn.setStatusTip("线段裁剪")
+        clipBtn.toggled.connect(self.clip_action)
+
+
+        group = QButtonGroup(self, exclusive=True)
+
+        for button in (
+            drawLineBtn,
+            drawPolygonBtn,
+            drawEllipseBtn,
+            drawCurveBtn,
+            translateBtn,
+            rotateBtn,
+            scaleBtn,
+            clipBtn,
+        ):
+            button.setCheckable(True)
+            toolBar.addWidget(button)
+            group.addButton(button)
+
+        self.comboBox = QComboBox()
+        self.comboBox.highlighted[str].connect(self.canvas_widget.set_alg)
+
+
+        toolBar.addWidget(self.comboBox)
+
 
         # 连接信号和槽函数
         exit_act.triggered.connect(qApp.quit)
@@ -547,6 +631,43 @@ class MainWindow(QMainWindow):
         _id = str(self.item_cnt)
         self.item_cnt += 1
         return _id
+
+    def line_action(self):
+        self.comboBox.clear()
+        self.comboBox.addItem("DDA")
+        self.comboBox.addItem("Bresenham")
+        self.comboBox.addItem("Naive")
+        self.canvas_widget.start_draw_line('DDA', self.get_id())
+        self.statusBar().showMessage('绘制线段')
+        self.list_widget.clearSelection()
+        self.canvas_widget.clear_selection()
+
+    def polygon_action(self):
+        self.comboBox.clear()
+        self.comboBox.addItem("DDA")
+        self.comboBox.addItem("Bresenham")
+        self.canvas_widget.start_draw_polygon('DDA', self.get_id())
+        self.statusBar().showMessage('绘制多边形')
+        self.list_widget.clearSelection()
+        self.canvas_widget.clear_selection()
+
+    def curve_action(self):
+        self.comboBox.clear()
+        self.comboBox.addItem("Bezier")
+        self.comboBox.addItem("B-spline")
+        self.canvas_widget.start_draw_curve('Bezier', self.get_id())
+        self.statusBar().showMessage('绘制曲线')
+        self.list_widget.clearSelection()
+        self.canvas_widget.clear_selection()
+
+    def clip_action(self):
+        self.comboBox.clear()
+        self.comboBox.addItem("Cohen-Sutherland")
+        self.comboBox.addItem("Liang-Barsky")
+        self.canvas_widget.start_clip('Cohen-Sutherland')
+        self.statusBar().showMessage('线段裁剪')
+        self.list_widget.clearSelection()
+        self.canvas_widget.clear_selection()
 
     def line_naive_action(self):
         self.canvas_widget.start_draw_line('Naive', self.get_id())
