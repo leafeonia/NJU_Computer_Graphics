@@ -96,13 +96,15 @@ class MyCanvas(QGraphicsView):
         self.scene().addItem(self.helperPoints_item)
         self.item_dict = {}
 
-
     def set_color(self):
         colorDialog = QColorDialog()
         self.color = colorDialog.getColor()
 
     def set_alg(self, algorithm):
         self.temp_algorithm = algorithm
+
+    def start_select(self):
+        self.status = 'select'
 
     def start_draw_line(self, algorithm, item_id):
         self.status = 'line'
@@ -234,6 +236,12 @@ class MyCanvas(QGraphicsView):
                 self.rotatePoint = [x, y]
                 self.temp_plist = self.temp_item.p_list[:]
                 self.corePoint = self.temp_item.corePoint()
+        elif self.status == 'select':
+            item = self.scene().itemAt(x, y, QTransform())
+            if item is not None:
+                print("selected")
+                # MyItem(item).selected = True
+
         self.helperPoints_item.p_list = self.temp_item.p_list[:]
         self.checkHelper()
         self.updateScene([self.sceneRect()])
@@ -489,48 +497,19 @@ class MainWindow(QMainWindow):
         self.canvas_widget.main_window = self
         self.canvas_widget.list_widget = self.list_widget
 
-        # 设置菜单栏
-        menubar = self.menuBar()
-        file_menu = menubar.addMenu('文件')
-        set_pen_act = file_menu.addAction('设置画笔')
-        reset_canvas_act = file_menu.addAction('重置画布')
-        save_canvas_act = file_menu.addAction('保存画布')
-        exit_act = file_menu.addAction('退出')
-        draw_menu = menubar.addMenu('绘制')
-        line_menu = draw_menu.addMenu('线段')
-        line_naive_act = line_menu.addAction('Naive')
-        line_dda_act = line_menu.addAction('DDA')
-        line_bresenham_act = line_menu.addAction('Bresenham')
-        polygon_menu = draw_menu.addMenu('多边形')
-        polygon_dda_act = polygon_menu.addAction('DDA')
-        polygon_bresenham_act = polygon_menu.addAction('Bresenham')
-        ellipse_act = draw_menu.addAction('椭圆')
-        curve_menu = draw_menu.addMenu('曲线')
-        curve_bezier_act = curve_menu.addAction('Bezier')
-        curve_b_spline_act = curve_menu.addAction('B-spline')
-        edit_menu = menubar.addMenu('编辑')
-        translate_act = edit_menu.addAction('平移')
-        rotate_act = edit_menu.addAction('旋转')
-        scale_act = edit_menu.addAction('缩放')
-        clip_menu = edit_menu.addMenu('裁剪')
-        clip_cohen_sutherland_act = clip_menu.addAction('Cohen-Sutherland')
-        clip_liang_barsky_act = clip_menu.addAction('Liang-Barsky')
-
         # 工具栏
         toolBar = QToolBar()
         self.addToolBar(toolBar)
 
-        newCanvas = QAction(QIcon("./icon/new.png"), "重置画布", toolBar)
-        newCanvas.setStatusTip("重置画布")
-        newCanvas.triggered.connect(self.reset_canvas_action)
+        newCanvas = QAction(QIcon("./icon/new.png"), "新建画布", toolBar)
+        newCanvas.setStatusTip("新建画布")
+        newCanvas.triggered.connect(self.new_canvas_action)
         toolBar.addAction(newCanvas)
 
-        # newCanvas = QToolButton(self)
-        # newCanvas.setIcon(QIcon("./icon/new.png"))
-        # newCanvas.setCheckable(True)
-        # newCanvas.toggled.connect(self.reset_canvas_action)
-        # toolBar.addWidget(newCanvas)
-
+        resetCanvas = QAction(QIcon("./icon/delete.png"), "清空画布", toolBar)
+        resetCanvas.setStatusTip("清空画布")
+        resetCanvas.triggered.connect(self.reset_canvas_action)
+        toolBar.addAction(resetCanvas)
 
         saveCanvas = QAction(QIcon("./icon/saveas.png"), "保存画布", toolBar)
         saveCanvas.setStatusTip("保存画布")
@@ -566,6 +545,10 @@ class MainWindow(QMainWindow):
         drawCurveBtn.setIcon(QIcon("./icon/curve.png"))
         drawCurveBtn.setStatusTip("绘制曲线")
         drawCurveBtn.toggled.connect(self.curve_action)
+        selectBtn = QToolButton(self)
+        selectBtn.setIcon(QIcon("./icon/pen1.png"))
+        selectBtn.setStatusTip("图元选择")
+        selectBtn.toggled.connect(self.select_action)
         translateBtn = QToolButton(self)
         translateBtn.setIcon(QIcon("./icon/select.png"))
         translateBtn.setStatusTip("图元平移")
@@ -591,6 +574,7 @@ class MainWindow(QMainWindow):
             drawPolygonBtn,
             drawEllipseBtn,
             drawCurveBtn,
+            selectBtn,
             translateBtn,
             rotateBtn,
             scaleBtn,
@@ -606,28 +590,9 @@ class MainWindow(QMainWindow):
         self.comboBox.setFixedWidth(150)
         self.comboBox.highlighted[str].connect(self.canvas_widget.set_alg)
 
-
         toolBar.addWidget(self.comboBox)
 
 
-        # 连接信号和槽函数
-        exit_act.triggered.connect(qApp.quit)
-        line_naive_act.triggered.connect(self.line_naive_action)
-        line_dda_act.triggered.connect(self.line_dda_action)
-        line_bresenham_act.triggered.connect(self.line_bresenham_action)
-        ellipse_act.triggered.connect(self.ellipse_action)
-        curve_bezier_act.triggered.connect(self.curve_bezier_action)
-        curve_b_spline_act.triggered.connect(self.curve_b_spline_action)
-        translate_act.triggered.connect(self.translate_action)
-        clip_cohen_sutherland_act.triggered.connect(self.clip_cohen_sutherland_action)
-        clip_liang_barsky_act.triggered.connect(self.clip_liang_barsky_action)
-        scale_act.triggered.connect(self.scale_action)
-        rotate_act.triggered.connect(self.rotate_action)
-        polygon_dda_act.triggered.connect(self.polygon_dda_action)
-        polygon_bresenham_act.triggered.connect(self.polygon_bresenham_action)
-        reset_canvas_act.triggered.connect(self.reset_canvas_action)
-        set_pen_act.triggered.connect(self.set_pen_action)
-        save_canvas_act.triggered.connect(self.save_canvas_action)
         self.list_widget.currentTextChanged.connect(self.canvas_widget.selection_changed)
 
         # 设置主窗口的布局
@@ -684,35 +649,9 @@ class MainWindow(QMainWindow):
         self.canvas_widget.start_clip('Cohen-Sutherland')
         self.statusBar().showMessage('线段裁剪')
 
-    def line_naive_action(self):
-        self.canvas_widget.start_draw_line('Naive', self.get_id())
-        self.statusBar().showMessage('Naive算法绘制线段')
-        self.list_widget.clearSelection()
-        self.canvas_widget.clear_selection()
+    def select_action(self):
+        self.canvas_widget.start_select()
 
-    def line_dda_action(self):
-        self.canvas_widget.start_draw_line('DDA', self.get_id())
-        self.statusBar().showMessage('DDA算法绘制线段')
-        self.list_widget.clearSelection()
-        self.canvas_widget.clear_selection()
-
-    def line_bresenham_action(self):
-        self.canvas_widget.start_draw_line('Bresenham', self.get_id())
-        self.statusBar().showMessage('Bresenham算法绘制线段')
-        self.list_widget.clearSelection()
-        self.canvas_widget.clear_selection()
-
-    def polygon_dda_action(self):
-        self.canvas_widget.start_draw_polygon('DDA', self.get_id())
-        self.statusBar().showMessage('DDA算法绘制多边形')
-        self.list_widget.clearSelection()
-        self.canvas_widget.clear_selection()
-
-    def polygon_bresenham_action(self):
-        self.canvas_widget.start_draw_polygon('Bresenham', self.get_id())
-        self.statusBar().showMessage('Bresenham算法绘制多边形')
-        self.list_widget.clearSelection()
-        self.canvas_widget.clear_selection()
 
     def ellipse_action(self):
         self.list_widget.clearSelection()
@@ -723,17 +662,6 @@ class MainWindow(QMainWindow):
         self.list_widget.clearSelection()
         self.canvas_widget.clear_selection()
 
-    def curve_bezier_action(self):
-        self.canvas_widget.start_draw_curve('Bezier', self.get_id())
-        self.statusBar().showMessage('Bezier算法绘制曲线')
-        self.list_widget.clearSelection()
-        self.canvas_widget.clear_selection()
-
-    def curve_b_spline_action(self):
-        self.canvas_widget.start_draw_curve('B-spline', self.get_id())
-        self.statusBar().showMessage('B样条算法绘制曲线')
-        self.list_widget.clearSelection()
-        self.canvas_widget.clear_selection()
 
     def translate_action(self):
         self.comboBox.clear()
@@ -756,6 +684,29 @@ class MainWindow(QMainWindow):
         else:
             self.statusBar().showMessage('图元旋转')
 
+    def new_canvas_action(self):
+        self.canvas_widget.reset_canvas()
+
+        dialog = QDialog()
+        layout = QFormLayout(dialog)
+        heightEdit = QLineEdit(dialog)
+        widthEdit = QLineEdit(dialog)
+        buttonBox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, dialog)
+        buttonBox.accepted.connect(dialog.accept)
+        buttonBox.rejected.connect(dialog.reject)
+        layout.addRow("Height", heightEdit)
+        layout.addRow("Width", widthEdit)
+        layout.addWidget(buttonBox)
+
+        if dialog.exec():
+            height = int(heightEdit.text())
+            width = int(widthEdit.text())
+            self.scene.setSceneRect(0, 0, width, height)
+            self.canvas_widget.setFixedSize(width+2, height+2)
+        self.statusBar().showMessage('新建画布')
+        self.list_widget.clearSelection()
+        self.canvas_widget.clear_selection()
+
     def reset_canvas_action(self):
         self.canvas_widget.reset_canvas()
         self.statusBar().showMessage('清空画布')
@@ -769,21 +720,6 @@ class MainWindow(QMainWindow):
     def save_canvas_action(self):
         self.canvas_widget.saveImage()
 
-    def clip_cohen_sutherland_action(self):
-        if not self.canvas_widget.start_clip('Cohen-Sutherland'):
-            self.statusBar().showMessage('请选中线段图元')
-        else:
-            self.statusBar().showMessage('Cohen-Sutherland算法裁剪')
-        self.list_widget.clearSelection()
-        self.canvas_widget.clear_selection()
-
-    def clip_liang_barsky_action(self):
-        if not self.canvas_widget.start_clip('Liang-Barsky'):
-            self.statusBar().showMessage('请选中线段图元')
-        else:
-            self.statusBar().showMessage('Liang-Barsky算法裁剪')
-        self.list_widget.clearSelection()
-        self.canvas_widget.clear_selection()
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
