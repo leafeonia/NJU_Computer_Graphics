@@ -36,7 +36,7 @@ class MyCanvas(QGraphicsView):
 
         self.status = ''
         self.color = Qt.black
-        self.line_width = 1
+        self.line_width = 2
         self.paintingPolygon = False
         self.paintingCurve = False
         self.temp_algorithm = ''
@@ -96,6 +96,8 @@ class MyCanvas(QGraphicsView):
         self.scene().clear()
         self.scene().addItem(self.helperPoints_item)
         self.item_dict = {}
+        self.main_window.reset()
+        self.temp_id = self.main_window.get_id(self.status, 0)
 
     def set_color(self):
         colorDialog = QColorDialog()
@@ -180,7 +182,7 @@ class MyCanvas(QGraphicsView):
 
     def finish_draw(self):
         self.helperPoints_item.p_list = []
-        self.temp_id = self.main_window.get_id()
+        self.temp_id = self.main_window.get_id(self.status, 1)
 
     def clear_selection(self):
         self.clearSettings()
@@ -211,26 +213,41 @@ class MyCanvas(QGraphicsView):
             self.temp_item = MyItem(self.temp_id, self.status, [[x, y], [x, y]], self.color, self.line_width, self.temp_algorithm)
             self.scene().addItem(self.temp_item)
         elif self.status == 'polygon':
-            if not self.paintingPolygon:
-                self.temp_item = MyItem(self.temp_id, self.status, [[x, y]], self.color, self.line_width, self.temp_algorithm)
-                self.paintingPolygon = True
-                self.scene().addItem(self.temp_item)
+            if event.button() == Qt.LeftButton:
+                if not self.paintingPolygon:
+                    self.temp_item = MyItem(self.temp_id, self.status, [[x, y]], self.color, self.line_width, self.temp_algorithm)
+                    self.paintingPolygon = True
+                    self.scene().addItem(self.temp_item)
+                else:
+                    self.temp_item.p_list.append([x, y])
             else:
-                self.temp_item.p_list.append([x, y])
+                self.temp_item.item_type = 'polygonDone'
+                self.item_dict[self.temp_id] = self.temp_item
+                self.list_widget.addItem(self.temp_id)
+                self.paintingPolygon = False
+                self.updateScene([self.sceneRect()])
+                self.finish_draw()
         elif self.status == 'ellipse':
             self.temp_item = MyItem(self.temp_id, self.status, [[x, y], [x, y]], self.color, self.line_width)
             self.scene().addItem(self.temp_item)
         elif self.status == 'curve':
-            if not self.paintingCurve:
-                self.temp_item = MyItem(self.temp_id, self.status, [[x, y]], self.color, self.line_width, self.temp_algorithm)
-                self.paintingCurve = True
-                self.scene().addItem(self.temp_item)
+            if event.button() == Qt.LeftButton:
+                if not self.paintingCurve:
+                    self.temp_item = MyItem(self.temp_id, self.status, [[x, y]], self.color, self.line_width, self.temp_algorithm)
+                    self.paintingCurve = True
+                    self.scene().addItem(self.temp_item)
+                else:
+                    self.temp_item.p_list.append([x, y])
             else:
-                self.temp_item.p_list.append([x, y])
+                self.item_dict[self.temp_id] = self.temp_item
+                self.list_widget.addItem(self.temp_id)
+                self.paintingCurve = False
+                self.finish_draw()
         elif self.status == 'clip' and self.temp_item.item_type == 'line':
             self.clipPoint1 = [x, y]
         elif self.status == 'translate':
             self.translateOrigin = [x, y]
+            self.temp_plist = self.temp_item.p_list[:]
         elif self.status == 'scale':
             if self.scalePoint == [-1, -1]:
                 self.scalePoint = [x, y]
@@ -244,30 +261,12 @@ class MyCanvas(QGraphicsView):
         elif self.status == 'select':
             item = self.scene().itemAt(x, y, QTransform())
             if item is not None:
-                print("selected")
-                # MyItem(item).selected = True
+                self.selection_changed(item.id)
 
         self.helperPoints_item.p_list = self.temp_item.p_list[:]
         self.checkHelper()
         self.updateScene([self.sceneRect()])
         super().mousePressEvent(event)
-
-    def mouseDoubleClickEvent(self, event: QMouseEvent) -> None:
-        pos = self.mapToScene(event.localPos().toPoint())
-        x = int(pos.x())
-        y = int(pos.y())
-        if self.status == 'curve':
-            self.item_dict[self.temp_id] = self.temp_item
-            self.list_widget.addItem(self.temp_id)
-            self.paintingCurve = False
-            self.finish_draw()
-        elif self.status == 'polygon':
-            self.temp_item.item_type = 'polygonDone'
-            self.item_dict[self.temp_id] = self.temp_item
-            self.list_widget.addItem(self.temp_id)
-            self.paintingPolygon = False
-            self.updateScene([self.sceneRect()])
-            self.finish_draw()
 
     def projectPointToLine(self, a, b, point):
         x0, y0, x1, y1, x, y = a[0], a[1], b[0], b[1], point[0], point[1]
@@ -441,7 +440,7 @@ class MyItem(QGraphicsItem):
         for p in item_pixels:
             painter.drawPoint(*p)
         if self.selected:
-            painter.setPen(Qt.red)
+            painter.setPen(QPen(Qt.red, 1, Qt.DashLine))
             painter.drawRect(self.boundingRect())
 
 
@@ -493,6 +492,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.item_cnt = 0
+        self.line_cnt = self.polygon_cnt = self.curve_cnt = self.ellipse_cnt = 0
 
         # 使用QListWidget来记录已有的图元，并用于选择图元。注：这是图元选择的简单实现方法，更好的实现是在画布中直接用鼠标选择图元
         self.list_widget = QListWidget(self)
@@ -553,42 +553,42 @@ class MainWindow(QMainWindow):
         drawLineBtn = QToolButton(self)
         drawLineBtn.setIcon(QIcon("./icon/line.png"))
         drawLineBtn.setStatusTip("绘制线段")
-        drawLineBtn.toggled.connect(self.line_action)
+        drawLineBtn.pressed.connect(self.line_action)
         drawPolygonBtn = QToolButton(self)
         drawPolygonBtn.setIcon(QIcon("./icon/polygon.png"))
         drawPolygonBtn.setStatusTip("绘制多边形")
-        drawPolygonBtn.toggled.connect(self.polygon_action)
+        drawPolygonBtn.pressed.connect(self.polygon_action)
         drawEllipseBtn = QToolButton(self)
         drawEllipseBtn.setIcon(QIcon("./icon/ellipse.png"))
         drawEllipseBtn.setStatusTip("绘制椭圆")
-        drawEllipseBtn.toggled.connect(self.ellipse_action)
+        drawEllipseBtn.pressed.connect(self.ellipse_action)
         drawCurveBtn = QToolButton(self)
         drawCurveBtn.setIcon(QIcon("./icon/curve.png"))
         drawCurveBtn.setStatusTip("绘制曲线")
-        drawCurveBtn.toggled.connect(self.curve_action)
+        drawCurveBtn.pressed.connect(self.curve_action)
         selectBtn = QToolButton(self)
-        selectBtn.setIcon(QIcon("./icon/pen1.png"))
+        selectBtn.setIcon(QIcon("./icon/select.png"))
         selectBtn.setStatusTip("图元选择")
-        selectBtn.toggled.connect(self.select_action)
+        selectBtn.pressed.connect(self.select_action)
         translateBtn = QToolButton(self)
-        translateBtn.setIcon(QIcon("./icon/select.png"))
+        translateBtn.setIcon(QIcon("./icon/translate.png"))
         translateBtn.setStatusTip("图元平移")
-        translateBtn.toggled.connect(self.translate_action)
+        translateBtn.pressed.connect(self.translate_action)
         rotateBtn = QToolButton(self)
         rotateBtn.setIcon(QIcon("./icon/rotate.png"))
         rotateBtn.setStatusTip("图元旋转")
-        rotateBtn.toggled.connect(self.rotate_action)
+        rotateBtn.pressed.connect(self.rotate_action)
         scaleBtn = QToolButton(self)
         scaleBtn.setIcon(QIcon("./icon/scale.png"))
         scaleBtn.setStatusTip("图元缩放")
-        scaleBtn.toggled.connect(self.scale_action)
+        scaleBtn.pressed.connect(self.scale_action)
         clipBtn = QToolButton(self)
         clipBtn.setIcon(QIcon("./icon/clip.png"))
         clipBtn.setStatusTip("线段裁剪")
-        clipBtn.toggled.connect(self.clip_action)
+        clipBtn.pressed.connect(self.clip_action)
 
 
-        group = QButtonGroup(self, exclusive=True)
+        self.group = QButtonGroup(self, exclusive=True)
 
         for button in (
             drawLineBtn,
@@ -603,7 +603,7 @@ class MainWindow(QMainWindow):
         ):
             button.setCheckable(True)
             toolBar.addWidget(button)
-            group.addButton(button)
+            self.group.addButton(button)
 
         toolBar.addSeparator()
 
@@ -627,10 +627,29 @@ class MainWindow(QMainWindow):
         self.resize(600, 600)
         self.setWindowTitle('CG Demo')
 
-    def get_id(self):
-        _id = str(self.item_cnt)
-        self.item_cnt += 1
-        return _id
+    def get_id(self, type, add):
+        if type == 'line':
+            self.line_cnt += add
+            return 'line ' + str(self.line_cnt)
+        elif type == 'polygon':
+            self.polygon_cnt += add
+            return 'polygon ' + str(self.polygon_cnt)
+        elif type == 'curve':
+            self.curve_cnt += add
+            return 'curve ' + str(self.curve_cnt)
+        elif type == 'ellipse':
+            self.ellipse_cnt += add
+            return 'ellipse ' + str(self.ellipse_cnt)
+        return "null"
+
+    def reset(self):
+        self.line_cnt = self.ellipse_cnt = self.curve_cnt = self.polygon_cnt = 0
+        self.list_widget.clear()
+        # checkedbutton = self.group.checkedButton()
+        # if checkedbutton:
+        #     self.group.setExclusive(False)
+        #     checkedbutton.setChecked(False)
+        #     self.group.setExclusive(True)
 
     def line_action(self):
         self.list_widget.clearSelection()
@@ -639,7 +658,7 @@ class MainWindow(QMainWindow):
         self.comboBox.addItem("DDA")
         self.comboBox.addItem("Bresenham")
         self.comboBox.addItem("Naive")
-        self.canvas_widget.start_draw_line('DDA', self.get_id())
+        self.canvas_widget.start_draw_line('DDA', self.get_id('line', 0))
         self.statusBar().showMessage('绘制线段')
 
 
@@ -649,7 +668,7 @@ class MainWindow(QMainWindow):
         self.comboBox.clear()
         self.comboBox.addItem("DDA")
         self.comboBox.addItem("Bresenham")
-        self.canvas_widget.start_draw_polygon('DDA', self.get_id())
+        self.canvas_widget.start_draw_polygon('DDA', self.get_id('polygon', 0))
         self.statusBar().showMessage('绘制多边形')
 
 
@@ -659,7 +678,7 @@ class MainWindow(QMainWindow):
         self.comboBox.clear()
         self.comboBox.addItem("Bezier")
         self.comboBox.addItem("B-spline")
-        self.canvas_widget.start_draw_curve('Bezier', self.get_id())
+        self.canvas_widget.start_draw_curve('Bezier', self.get_id('curve', 0))
         self.statusBar().showMessage('绘制曲线')
 
 
@@ -678,7 +697,7 @@ class MainWindow(QMainWindow):
         self.list_widget.clearSelection()
         self.canvas_widget.clear_selection()
         self.comboBox.clear()
-        self.canvas_widget.start_draw_ellipse(self.get_id())
+        self.canvas_widget.start_draw_ellipse(self.get_id('ellipse', 0))
         self.statusBar().showMessage('绘制椭圆')
         self.list_widget.clearSelection()
         self.canvas_widget.clear_selection()
