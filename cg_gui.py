@@ -36,6 +36,7 @@ class MyCanvas(QGraphicsView):
 
         self.status = ''
         self.color = Qt.black
+        self.line_width = 1
         self.paintingPolygon = False
         self.paintingCurve = False
         self.temp_algorithm = ''
@@ -99,9 +100,13 @@ class MyCanvas(QGraphicsView):
     def set_color(self):
         colorDialog = QColorDialog()
         self.color = colorDialog.getColor()
+        return self.color
 
     def set_alg(self, algorithm):
         self.temp_algorithm = algorithm
+
+    def set_line_width(self, width):
+        self.line_width = (width + 1) * 2
 
     def start_select(self):
         self.status = 'select'
@@ -203,21 +208,21 @@ class MyCanvas(QGraphicsView):
         x = int(pos.x())
         y = int(pos.y())
         if self.status == 'line':
-            self.temp_item = MyItem(self.temp_id, self.status, [[x, y], [x, y]], self.color, self.temp_algorithm)
+            self.temp_item = MyItem(self.temp_id, self.status, [[x, y], [x, y]], self.color, self.line_width, self.temp_algorithm)
             self.scene().addItem(self.temp_item)
         elif self.status == 'polygon':
             if not self.paintingPolygon:
-                self.temp_item = MyItem(self.temp_id, self.status, [[x, y]], self.color, self.temp_algorithm)
+                self.temp_item = MyItem(self.temp_id, self.status, [[x, y]], self.color, self.line_width, self.temp_algorithm)
                 self.paintingPolygon = True
                 self.scene().addItem(self.temp_item)
             else:
                 self.temp_item.p_list.append([x, y])
         elif self.status == 'ellipse':
-            self.temp_item = MyItem(self.temp_id, self.status, [[x, y], [x, y]], self.color)
+            self.temp_item = MyItem(self.temp_id, self.status, [[x, y], [x, y]], self.color, self.line_width)
             self.scene().addItem(self.temp_item)
         elif self.status == 'curve':
             if not self.paintingCurve:
-                self.temp_item = MyItem(self.temp_id, self.status, [[x, y]], self.color, self.temp_algorithm)
+                self.temp_item = MyItem(self.temp_id, self.status, [[x, y]], self.color, self.line_width, self.temp_algorithm)
                 self.paintingCurve = True
                 self.scene().addItem(self.temp_item)
             else:
@@ -378,7 +383,7 @@ class MyItem(QGraphicsItem):
     """
     自定义图元类，继承自QGraphicsItem
     """
-    def __init__(self, item_id: str, item_type: str, p_list: list, color: QColor = QColor(0, 0, 0), algorithm: str = '', parent: QGraphicsItem = None):
+    def __init__(self, item_id: str, item_type: str, p_list: list, color: QColor = QColor(0, 0, 0), width: int = 1, algorithm: str = '', parent: QGraphicsItem = None):
         """
 
         :param item_id: 图元ID
@@ -394,6 +399,7 @@ class MyItem(QGraphicsItem):
         self.p_list = p_list        # 图元参数
         self.color = color
         self.algorithm = algorithm  # 绘制算法，'DDA'、'Bresenham'、'Bezier'、'B-spline'等
+        self.width = width
         self.selected = False
 
         pointPen = QPen()
@@ -428,8 +434,11 @@ class MyItem(QGraphicsItem):
             item_pixels = alg.draw_ellipse(self.p_list)
         elif self.item_type == 'curve':
             item_pixels = alg.draw_curve(self.p_list, self.algorithm)
+        pen = QPen()
+        pen.setWidth(self.width)
+        pen.setBrush(self.color)
+        painter.setPen(pen)
         for p in item_pixels:
-            painter.setPen(self.color)
             painter.drawPoint(*p)
         if self.selected:
             painter.setPen(Qt.red)
@@ -516,16 +525,28 @@ class MainWindow(QMainWindow):
         saveCanvas.triggered.connect(self.save_canvas_action)
         toolBar.addAction(saveCanvas)
 
-        setColor = QAction(QIcon("./icon/palette.png"), "选择颜色", toolBar)
-        setColor.setStatusTip("选择颜色")
-        setColor.triggered.connect(self.set_pen_action)
-        toolBar.addAction(setColor)
+        toolBar.addSeparator()
+
+        # setColor = QAction(QIcon("./icon/palette.png"), "选择颜色", toolBar)
+        # setColor.setStatusTip("选择颜色")
+        # setColor.triggered.connect(self.set_pen_action)
+        # toolBar.addAction(setColor)
 
         colorViewer = QToolButton(self)
         colorViewer.setFixedHeight(30)
         colorViewer.setFixedWidth(30)
-        colorViewer.setStyleSheet("margin: 5px; background-color: red; border-radius: 5px;")
+        colorViewer.setStyleSheet("margin: 5px; background-color: black; border-radius: 5px;")
+        colorViewer.setCheckable(True)
+        colorViewer.toggled.connect(self.set_pen_action)
         toolBar.addWidget(colorViewer)
+        self.colorViewer = colorViewer
+
+        self.lineWidthSelector = QComboBox()
+        self.lineWidthSelector.addItem(QIcon("./icon/line1.png"), "")
+        self.lineWidthSelector.addItem(QIcon("./icon/line2.png"), "")
+        self.lineWidthSelector.addItem(QIcon("./icon/line3.png"), "")
+        self.lineWidthSelector.highlighted[int].connect(self.canvas_widget.set_line_width)
+        toolBar.addWidget(self.lineWidthSelector)
 
         toolBar.addSeparator()
 
@@ -587,7 +608,7 @@ class MainWindow(QMainWindow):
         toolBar.addSeparator()
 
         self.comboBox = QComboBox()
-        self.comboBox.setFixedWidth(150)
+        self.comboBox.setFixedWidth(155)
         self.comboBox.highlighted[str].connect(self.canvas_widget.set_alg)
 
         toolBar.addWidget(self.comboBox)
@@ -714,7 +735,10 @@ class MainWindow(QMainWindow):
         self.canvas_widget.clear_selection()
 
     def set_pen_action(self):
-        self.canvas_widget.set_color()
+        color = self.canvas_widget.set_color()
+        if color.isValid():
+            css = "margin: 5px; background-color: rgb({0},{1},{2}); border-radius: 5px;".format(color.red(), color.green(), color.blue())
+            self.colorViewer.setStyleSheet(css)
         self.statusBar().showMessage('设置颜色')
 
     def save_canvas_action(self):
