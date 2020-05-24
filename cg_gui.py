@@ -4,20 +4,6 @@
 import sys
 import cg_algorithms as alg
 from typing import Optional
-from PyQt5.QtWidgets import (
-    QApplication,
-    QMainWindow,
-    qApp,
-    QGraphicsScene,
-    QGraphicsView,
-    QGraphicsItem,
-    QListWidget,
-    QHBoxLayout,
-    QWidget,
-    QStyleOptionGraphicsItem,
-    QGraphicsSceneMouseEvent)
-from PyQt5.QtGui import QPainter, QMouseEvent, QColor, QPen
-from PyQt5.QtCore import QRectF
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
@@ -181,6 +167,7 @@ class MyCanvas(QGraphicsView):
             return True
 
     def finish_draw(self):
+        self.selection_changed(self.temp_id)
         self.helperPoints_item.p_list = []
         self.temp_id = self.main_window.get_id(self.status, 1)
 
@@ -337,6 +324,8 @@ class MyCanvas(QGraphicsView):
                 if flip:
                     r = 360 - r
                 self.temp_item.p_list = alg.rotate(self.temp_plist, self.corePoint[0], self.corePoint[1], r)
+        elif self.status == 'clip':
+            self.clipPoint2 = [x, y]
         self.helperPoints_item.p_list = self.temp_item.p_list[:]
         self.checkHelper()
         self.updateScene([self.sceneRect()])
@@ -541,6 +530,10 @@ class MainWindow(QMainWindow):
         toolBar.addWidget(colorViewer)
         self.colorViewer = colorViewer
 
+        pad = QLabel()
+        pad.setFixedWidth(10)
+        toolBar.addWidget(pad)
+
         self.lineWidthSelector = QComboBox()
         self.lineWidthSelector.addItem(QIcon("./icon/line1.png"), "")
         self.lineWidthSelector.addItem(QIcon("./icon/line2.png"), "")
@@ -548,6 +541,9 @@ class MainWindow(QMainWindow):
         self.lineWidthSelector.highlighted[int].connect(self.canvas_widget.set_line_width)
         toolBar.addWidget(self.lineWidthSelector)
 
+        pad2 = QLabel()
+        pad2.setFixedWidth(5)
+        toolBar.addWidget(pad2)
         toolBar.addSeparator()
 
         drawLineBtn = QToolButton(self)
@@ -607,6 +603,9 @@ class MainWindow(QMainWindow):
 
         toolBar.addSeparator()
 
+        pad3 = QLabel()
+        pad3.setFixedWidth(5)
+        toolBar.addWidget(pad3)
         self.comboBox = QComboBox()
         self.comboBox.setFixedWidth(155)
         self.comboBox.highlighted[str].connect(self.canvas_widget.set_alg)
