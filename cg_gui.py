@@ -43,10 +43,13 @@ class MyCanvas(QGraphicsView):
 
         # helperPoints
         self.helperPoints_item = MyItem("helperPoints", "helperPoints", [])
+        self.helperLines_item = MyItem("helperLines", "helperLines", [])
         self.scene().addItem(self.helperPoints_item)
+        self.scene().addItem(self.helperLines_item)
 
     def clearSettings(self):
         self.helperPoints_item.p_list = []
+        self.helperLines_item.p_list = []
         self.translateOrigin = self.corePoint = self.scalePoint = self.rotatePoint = self.clipPoint1 = self.clipPoint2 = [-1, -1]
 
     def checkHelper(self):
@@ -63,6 +66,15 @@ class MyCanvas(QGraphicsView):
                 self.helperPoints_item.p_list.append(self.clipPoint1)
             if self.clipPoint2 != [-1, -1]:
                 self.helperPoints_item.p_list.append(self.clipPoint2)
+                self.helperLines_item.p_list = []
+                xmin = min(self.clipPoint1[0], self.clipPoint2[0])
+                xmax = max(self.clipPoint1[0], self.clipPoint2[0])
+                ymin = min(self.clipPoint1[1], self.clipPoint2[1])
+                ymax = max(self.clipPoint1[1], self.clipPoint2[1])
+                self.helperLines_item.p_list.append([[xmin, ymin], [xmin, ymax]])
+                self.helperLines_item.p_list.append([[xmin, ymin], [xmax, ymin]])
+                self.helperLines_item.p_list.append([[xmin, ymax], [xmax, ymax]])
+                self.helperLines_item.p_list.append([[xmax, ymin], [xmax, ymax]])
 
     def saveImage(self):
         filename = QFileDialog.getSaveFileName(self, "保存画布", "myGreatPainting",
@@ -72,6 +84,7 @@ class MyCanvas(QGraphicsView):
                                               "Joint Photographic Experts Group (*.jpeg)")
         if filename[0] == '':
             return
+        self.clear_selection()
         self.scene().clearSelection()
         pixmap = self.grab(self.sceneRect().toRect())
         pixmap.save(filename[0])
@@ -169,6 +182,7 @@ class MyCanvas(QGraphicsView):
     def finish_draw(self):
         self.selection_changed(self.temp_id)
         self.helperPoints_item.p_list = []
+        self.helperLines_item.p_list = []
         self.temp_id = self.main_window.get_id(self.status, 1)
 
     def clear_selection(self):
@@ -397,6 +411,11 @@ class MyItem(QGraphicsItem):
         pointPen.setCapStyle(Qt.SquareCap)
         self.pointPen = pointPen
 
+        self.linePen = QPen()
+        self.linePen.setColor(QColor(0, 128, 255))
+        self.linePen.setWidth(1)
+        self.linePen.setStyle(Qt.DashLine)
+
     def paint(self, painter: QPainter, option: QStyleOptionGraphicsItem, widget: Optional[QWidget] = ...) -> None:
         if self.item_type == 'helperPoints':
             for point in self.p_list:
@@ -408,8 +427,12 @@ class MyItem(QGraphicsItem):
                 painter.drawLine(x - 2, y - 2, x + 2, y - 2)
                 painter.drawLine(x - 2, y + 2, x + 2, y + 2)
             return
-
-        if self.item_type == 'line':
+        if self.item_type == 'helperLines':
+            painter.setPen(self.linePen)
+            for line in self.p_list:
+                painter.drawLine(line[0][0], line[0][1], line[1][0], line[1][1])
+            return
+        elif self.item_type == 'line':
             item_pixels = alg.draw_line(self.p_list, self.algorithm)
         elif self.item_type == 'polygon':
             item_pixels = []
@@ -426,6 +449,7 @@ class MyItem(QGraphicsItem):
         pen.setWidth(self.width)
         pen.setBrush(self.color)
         painter.setPen(pen)
+
         for p in item_pixels:
             painter.drawPoint(*p)
         if self.selected:
@@ -467,6 +491,16 @@ class MyItem(QGraphicsItem):
                 xmax = max(point[0], xmax)
                 ymin = min(point[1], ymin)
                 ymax = max(point[1], ymax)
+            return QRectF(xmin - 2, ymin - 2, xmax - xmin + 4, ymax - ymin + 4)
+        elif self.item_type == 'helperLines':
+            xmin = ymin = 10000
+            xmax = ymax = 0
+            for line in self.p_list:
+                for point in line:
+                    xmin = min(point[0], xmin)
+                    xmax = max(point[0], xmax)
+                    ymin = min(point[1], ymin)
+                    ymax = max(point[1], ymax)
             return QRectF(xmin - 2, ymin - 2, xmax - xmin + 4, ymax - ymin + 4)
 
     def corePoint(self):
