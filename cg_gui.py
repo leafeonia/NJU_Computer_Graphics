@@ -41,7 +41,7 @@ class MyCanvas(QGraphicsView):
         # rotate
         self.rotatePoint = [-1, -1]
 
-        # helperPoints
+        # helpers
         self.helperPoints_item = MyItem("helperPoints", "helperPoints", [])
         self.helperLines_item = MyItem("helperLines", "helperLines", [])
         self.scene().addItem(self.helperPoints_item)
@@ -91,9 +91,13 @@ class MyCanvas(QGraphicsView):
 
     def reset_canvas(self):
         self.clear_selection()
+        self.helperLines_item.p_list = []
+        self.helperPoints_item.p_list = []
         self.scene().removeItem(self.helperPoints_item)
+        self.scene().removeItem(self.helperLines_item)
         self.scene().clear()
         self.scene().addItem(self.helperPoints_item)
+        self.scene().addItem(self.helperLines_item)
         self.item_dict = {}
         self.main_window.reset()
         self.temp_id = self.main_window.get_id(self.status, 0)
@@ -238,6 +242,8 @@ class MyCanvas(QGraphicsView):
                     self.paintingCurve = True
                     self.scene().addItem(self.temp_item)
                 else:
+                    if len(self.temp_item.p_list) > 1:
+                        self.helperLines_item.p_list.append([self.temp_item.p_list[-1], [x, y]])
                     self.temp_item.p_list.append([x, y])
             else:
                 self.item_dict[self.temp_id] = self.temp_item
@@ -313,6 +319,9 @@ class MyCanvas(QGraphicsView):
                         nowLength = b2
                 s = nowLength / pivotLength
                 self.temp_item.p_list = alg.scale(self.temp_plist, self.scalePoint[0], self.scalePoint[1], 1 - s)
+                self.helperLines_item.p_list = []
+                for point in self.temp_item.p_list:
+                    self.helperLines_item.p_list.append([point, self.scalePoint])
         elif self.status == 'rotate':
             if self.rotatePoint != [-1, -1]:
                 x1, y1 = self.corePoint[0], self.corePoint[1]
@@ -338,6 +347,11 @@ class MyCanvas(QGraphicsView):
                 if flip:
                     r = 360 - r
                 self.temp_item.p_list = alg.rotate(self.temp_plist, self.corePoint[0], self.corePoint[1], r)
+                # if self.temp_item.item_type == 'polygon' or self.temp_item.item_type == 'curve':
+                #
+                self.helperLines_item.p_list = []
+                for point in self.temp_item.p_list:
+                    self.helperLines_item.p_list.append([point, self.rotatePoint])
         elif self.status == 'clip':
             self.clipPoint2 = [x, y]
         self.helperPoints_item.p_list = self.temp_item.p_list[:]
@@ -372,6 +386,8 @@ class MyCanvas(QGraphicsView):
                 self.temp_item.update()
             # self.status = ''
             self.temp_id = ''
+            self.helperLines_item.p_list = []
+            self.helperPoints_item.p_list = []
             self.updateScene([self.sceneRect()])
 
         elif self.status == 'translate' or self.status == 'rotate' or self.status == 'scale':
