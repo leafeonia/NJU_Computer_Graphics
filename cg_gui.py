@@ -120,25 +120,30 @@ class MyCanvas(QGraphicsView):
         self.status = 'line'
         self.temp_algorithm = algorithm
         self.temp_id = item_id
+        self.setCursor(Qt.CrossCursor)
 
     def start_draw_polygon(self, algorithm, item_id):
         self.status = 'polygon'
         self.temp_algorithm = algorithm
         self.temp_id = item_id
+        self.setCursor(Qt.CrossCursor)
 
     def start_draw_ellipse(self, item_id):
         self.status = 'ellipse'
         self.temp_id = item_id
+        self.setCursor(Qt.CrossCursor)
 
     def start_draw_curve(self, algorithm, item_id):
         self.status = 'curve'
         self.temp_algorithm = algorithm
         self.temp_id = item_id
+        self.setCursor(Qt.CrossCursor)
 
     def start_clip(self, algorithm):
         self.status = 'clip'
         self.clearSettings()
         self.temp_algorithm = algorithm
+        QApplication.setOverrideCursor(Qt.ArrowCursor)
         if self.selected_id == '' or self.item_dict[self.selected_id].item_type != 'line':
             # self.status = ''
             return False
@@ -149,6 +154,7 @@ class MyCanvas(QGraphicsView):
     def start_translate(self):
         self.status = 'translate'
         self.clearSettings()
+        QApplication.setOverrideCursor(Qt.ArrowCursor)
         if self.selected_id == '':
             # self.status = ''
             return False
@@ -162,6 +168,7 @@ class MyCanvas(QGraphicsView):
     def start_scale(self):
         self.status = 'scale'
         self.clearSettings()
+        QApplication.setOverrideCursor(Qt.ArrowCursor)
         if self.selected_id == '':
             # self.status = ''
             return False
@@ -174,6 +181,7 @@ class MyCanvas(QGraphicsView):
     def start_rotate(self):
         self.status = 'rotate'
         self.clearSettings()
+        QApplication.setOverrideCursor(Qt.ArrowCursor)
         if self.selected_id == '':
             # self.status = ''
             return False
@@ -242,7 +250,7 @@ class MyCanvas(QGraphicsView):
                     self.paintingCurve = True
                     self.scene().addItem(self.temp_item)
                 else:
-                    if len(self.temp_item.p_list) > 1:
+                    if len(self.temp_item.p_list) >= 1:
                         self.helperLines_item.p_list.append([self.temp_item.p_list[-1], [x, y]])
                     self.temp_item.p_list.append([x, y])
             else:
@@ -269,8 +277,8 @@ class MyCanvas(QGraphicsView):
             item = self.scene().itemAt(x, y, QTransform())
             if item is not None:
                 self.selection_changed(item.id)
-
-        self.helperPoints_item.p_list = self.temp_item.p_list[:]
+        if self.temp_item:
+            self.helperPoints_item.p_list = self.temp_item.p_list[:]
         self.checkHelper()
         self.updateScene([self.sceneRect()])
         super().mousePressEvent(event)
@@ -297,9 +305,11 @@ class MyCanvas(QGraphicsView):
         elif self.status == 'ellipse':
             self.temp_item.p_list[1] = [x, y]
         elif self.status == 'translate':
+            QApplication.setOverrideCursor(Qt.ClosedHandCursor)
             self.temp_item.p_list = alg.translate(self.temp_plist, x - self.translateOrigin[0], y - self.translateOrigin[1])
         elif self.status == 'scale':
             if self.scalePoint != [-1, -1]:
+                QApplication.setOverrideCursor(Qt.ClosedHandCursor)
                 a1 = self.corePoint[0] - self.scalePoint[0]
                 b1 = self.corePoint[1] - self.scalePoint[1]
                 a2 = self.corePoint[0] - self.projectPointToLine(self.corePoint, self.scalePoint, [x, y])[0]
@@ -324,6 +334,7 @@ class MyCanvas(QGraphicsView):
                     self.helperLines_item.p_list.append([point, self.scalePoint])
         elif self.status == 'rotate':
             if self.rotatePoint != [-1, -1]:
+                QApplication.setOverrideCursor(Qt.ClosedHandCursor)
                 x1, y1 = self.corePoint[0], self.corePoint[1]
                 x2, y2 = self.rotatePoint[0] - x1, self.rotatePoint[1] - y1
                 x3, y3 = x - x1, y - y1
@@ -353,6 +364,7 @@ class MyCanvas(QGraphicsView):
                 for point in self.temp_item.p_list:
                     self.helperLines_item.p_list.append([point, self.rotatePoint])
         elif self.status == 'clip':
+            QApplication.setOverrideCursor(Qt.ClosedHandCursor)
             self.clipPoint2 = [x, y]
         self.helperPoints_item.p_list = self.temp_item.p_list[:]
         self.checkHelper()
@@ -384,6 +396,7 @@ class MyCanvas(QGraphicsView):
             else:
                 self.temp_item.p_list = clipped_list
                 self.temp_item.update()
+            QApplication.setOverrideCursor(Qt.ArrowCursor)
             # self.status = ''
             self.temp_id = ''
             self.helperLines_item.p_list = []
@@ -391,6 +404,7 @@ class MyCanvas(QGraphicsView):
             self.updateScene([self.sceneRect()])
 
         elif self.status == 'translate' or self.status == 'rotate' or self.status == 'scale':
+            QApplication.setOverrideCursor(Qt.ArrowCursor)
             # self.status = ''
             self.temp_id = ''
             self.temp_plist = self.temp_item.p_list[:]
@@ -547,6 +561,7 @@ class MainWindow(QMainWindow):
 
         # 工具栏
         toolBar = QToolBar()
+        toolBar.setCursor(Qt.ArrowCursor)
         self.addToolBar(toolBar)
 
         newCanvas = QAction(QIcon("./icon/new.png"), "新建画布", toolBar)
