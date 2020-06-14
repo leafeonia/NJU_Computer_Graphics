@@ -8,6 +8,7 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 import math
+import copy
 
 class MyCanvas(QGraphicsView):
     """
@@ -28,6 +29,7 @@ class MyCanvas(QGraphicsView):
         self.temp_algorithm = ''
         self.temp_id = ''
         self.temp_item = None
+        self.copied_item = None
         self.clipPoint1 = [-1, -1]
         self.clipPoint2 = [-1, -1]
         self.translateOrigin = [-1, -1]
@@ -217,6 +219,26 @@ class MyCanvas(QGraphicsView):
         self.temp_item = self.item_dict[selected]
         # self.status = ''
         self.updateScene([self.sceneRect()])
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_C and QApplication.keyboardModifiers() == Qt.ControlModifier:
+            self.main_window.statusBar().showMessage('图元复制： %s' % self.selected_id)
+            self.copied_item = self.temp_item
+        elif event.key() == Qt.Key_V and QApplication.keyboardModifiers() == Qt.ControlModifier and self.copied_item:
+            selected = self.item_dict[self.selected_id]
+            selected.selected = False
+            new_p_list = selected.p_list[:]
+            for point in new_p_list:
+                point[0] += 50
+                point[1] += 50
+            newItem = MyItem(selected.id, selected.item_type, new_p_list, selected.color, selected.width, selected.algorithm)
+            newId = self.main_window.get_id(selected.item_type, 1)
+            self.scene().addItem(newItem)
+            newItem.selected = True
+            self.temp_item = newItem
+            self.selected_id = newId
+            self.item_dict[newId] = newItem
+            self.main_window.statusBar().showMessage('图元粘贴： %s' % self.selected_id)
 
     def mousePressEvent(self, event: QMouseEvent) -> None:
         pos = self.mapToScene(event.localPos().toPoint())
