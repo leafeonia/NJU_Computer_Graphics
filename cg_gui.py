@@ -225,20 +225,17 @@ class MyCanvas(QGraphicsView):
             self.main_window.statusBar().showMessage('图元复制： %s' % self.selected_id)
             self.copied_item = self.temp_item
         elif event.key() == Qt.Key_V and QApplication.keyboardModifiers() == Qt.ControlModifier and self.copied_item:
-            selected = self.item_dict[self.selected_id]
-            selected.selected = False
-            new_p_list = selected.p_list[:]
+            new_p_list = self.copied_item.p_list[:]
             for point in new_p_list:
                 point[0] += 50
                 point[1] += 50
-            newItem = MyItem(selected.id, selected.item_type, new_p_list, selected.color, selected.width, selected.algorithm)
-            newId = self.main_window.get_id(selected.item_type, 1)
+            newId = self.main_window.get_id(self.copied_item.item_type, 1)
+            newItem = MyItem(newId, self.copied_item.item_type, new_p_list, self.copied_item.color, self.copied_item.width, self.copied_item.algorithm)
             self.scene().addItem(newItem)
-            newItem.selected = True
-            self.temp_item = newItem
-            self.selected_id = newId
             self.item_dict[newId] = newItem
-            self.main_window.statusBar().showMessage('图元粘贴： %s' % self.selected_id)
+            self.selection_changed(newId)
+
+            self.main_window.statusBar().showMessage('图元粘贴： %s' % newId)
 
     def mousePressEvent(self, event: QMouseEvent) -> None:
         pos = self.mapToScene(event.localPos().toPoint())
@@ -388,7 +385,8 @@ class MyCanvas(QGraphicsView):
         elif self.status == 'clip':
             QApplication.setOverrideCursor(Qt.ClosedHandCursor)
             self.clipPoint2 = [x, y]
-        self.helperPoints_item.p_list = self.temp_item.p_list[:]
+        if self.temp_item:
+            self.helperPoints_item.p_list = self.temp_item.p_list[:]
         self.checkHelper()
         self.updateScene([self.sceneRect()])
         super().mouseMoveEvent(event)
