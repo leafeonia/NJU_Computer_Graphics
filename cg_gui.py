@@ -225,16 +225,17 @@ class MyCanvas(QGraphicsView):
             self.main_window.statusBar().showMessage('图元复制： %s' % self.selected_id)
             self.copied_item = self.temp_item
         elif event.key() == Qt.Key_V and QApplication.keyboardModifiers() == Qt.ControlModifier and self.copied_item:
-            new_p_list = self.copied_item.p_list[:]
+            new_p_list = copy.deepcopy(self.copied_item.p_list)
             for point in new_p_list:
-                point[0] += 50
-                point[1] += 50
-            newId = self.main_window.get_id(self.copied_item.item_type, 1)
+                point[0] += 20
+                point[1] += 20
+            newId = self.main_window.get_id(self.copied_item.item_type, 0)
             newItem = MyItem(newId, self.copied_item.item_type, new_p_list, self.copied_item.color, self.copied_item.width, self.copied_item.algorithm)
             self.scene().addItem(newItem)
             self.item_dict[newId] = newItem
+            self.list_widget.addItem(newId)
             self.selection_changed(newId)
-
+            self.main_window.get_id(self.copied_item.item_type, 1)
             self.main_window.statusBar().showMessage('图元粘贴： %s' % newId)
 
     def mousePressEvent(self, event: QMouseEvent) -> None:
@@ -715,7 +716,7 @@ class MainWindow(QMainWindow):
         if type == 'line':
             self.line_cnt += add
             return 'line ' + str(self.line_cnt)
-        elif type == 'polygon':
+        elif type == 'polygon' or type == 'polygonDone':
             self.polygon_cnt += add
             return 'polygon ' + str(self.polygon_cnt)
         elif type == 'curve':
