@@ -380,3 +380,15 @@ def fillPolygon(p_list, x_min, y_min, x_max, y_max):
                 returnList.append([x, y])
     return returnList
 
+def fillEllipse(item_pixels, y_min, y_max):
+    dic = {}
+    returnList = []
+    for y in range(y_min, y_max + 1):
+        dic[y] = []
+    for pixel in item_pixels:
+        dic[pixel[1]].append(pixel[0])
+    for y in range(y_min, y_max):
+        if len(dic[y]) > 1:
+            for x in range(dic[y][1], dic[y][0]):
+                returnList.append([x, y])
+    return returnList

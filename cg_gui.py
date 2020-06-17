@@ -498,10 +498,25 @@ class MyItem(QGraphicsItem):
             for i in range(len(self.p_list) - 1):
                 line = alg.draw_line([self.p_list[i], self.p_list[i + 1]], self.algorithm)
                 item_pixels += line
+
         elif self.item_type == 'polygonDone':
             item_pixels = alg.draw_polygon(self.p_list, self.algorithm)
+            box = self.boundingRect()
+            fill_pixels = alg.fillPolygon(self.p_list, int(box.x()), int(box.y()), int(box.x() + box.width()), int(box.y() + box.height()))
+            pen2 = QPen()
+            pen2.setBrush(QColor(Qt.blue))
+            painter.setPen(pen2)
+            for p in fill_pixels:
+                painter.drawPoint(*p)
         elif self.item_type == 'ellipse':
             item_pixels = alg.draw_ellipse(self.p_list)
+            box = self.boundingRect()
+            fill_pixels = alg.fillEllipse(item_pixels, int(box.y()), int(box.y() + box.height()))
+            pen2 = QPen()
+            pen2.setBrush(QColor(Qt.cyan))
+            painter.setPen(pen2)
+            for p in fill_pixels:
+                painter.drawPoint(*p)
         elif self.item_type == 'curve':
             item_pixels = alg.draw_curve(self.p_list, self.algorithm)
         pen = QPen()
