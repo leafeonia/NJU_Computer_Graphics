@@ -356,3 +356,27 @@ def clipPolygon(p_list, x_min, y_min, x_max, y_max):
         returnList = copy.deepcopy(tempList)
     return returnList
 
+def fillPolygon(p_list, x_min, y_min, x_max, y_max):
+    line_list = []
+    returnList = []
+    for i in range(len(p_list)):
+        line_list.append([p_list[i - 1], p_list[i]])
+    for y in range(y_min, y_max):
+        intersect_x = []
+        for line in line_list:
+            if y > max(line[0][1], line[1][1]) or y < min(line[0][1], line[1][1]):
+                continue
+            if line[0][1] == line[1][1]:
+                continue
+            intersect_x.append(intersectPoint([x_min, y], [x_max, y], line[0], line[1])[0])
+        # remove overlap x
+        intersect_x = list(dict.fromkeys(intersect_x))
+        for i in range(len(intersect_x) - 1):
+            if intersect_x[i] > intersect_x[i + 1]:
+                intersect_x[i], intersect_x[i + 1] = intersect_x[i + 1], intersect_x[i]
+
+        for i in range(0, len(intersect_x) - 1, 2):
+            for x in range(intersect_x[i], intersect_x[i + 1]):
+                returnList.append([x, y])
+    return returnList
+
