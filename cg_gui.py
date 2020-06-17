@@ -221,6 +221,7 @@ class MyCanvas(QGraphicsView):
         self.updateScene([self.sceneRect()])
 
     def keyPressEvent(self, event):
+
         if event.key() == Qt.Key_C and QApplication.keyboardModifiers() == Qt.ControlModifier:
             self.main_window.statusBar().showMessage('图元复制： %s' % self.selected_id)
             self.copied_item = self.temp_item
@@ -278,7 +279,7 @@ class MyCanvas(QGraphicsView):
                 self.list_widget.addItem(self.temp_id)
                 self.paintingCurve = False
                 self.finish_draw()
-        elif self.status == 'clip' and self.temp_item.item_type == 'line':
+        elif self.status == 'clip' and (self.temp_item.item_type == 'line' or self.temp_item.item_type == 'polygonDone'):
             self.clipPoint1 = [x, y]
         elif self.status == 'translate':
             self.translateOrigin = [x, y]
@@ -401,17 +402,24 @@ class MyCanvas(QGraphicsView):
             self.item_dict[self.temp_id] = self.temp_item
             self.list_widget.addItem(self.temp_id)
             self.finish_draw()
-        elif self.status == 'clip' and self.temp_item.item_type == 'line':
+        elif self.status == 'clip' and (self.temp_item.item_type == 'line' or self.temp_item.item_type == 'polygon' or self.temp_item.item_type == 'polygonDone'):
             pos = self.mapToScene(event.localPos().toPoint())
             x = int(pos.x())
             y = int(pos.y())
             self.clipPoint2 = [x, y]
-            clipped_list = alg.clip(self.temp_item.p_list,
+            if self.temp_item.item_type == 'line':
+                clipped_list = alg.clip(self.temp_item.p_list,
                                     min(self.clipPoint1[0], self.clipPoint2[0]),
                                     min(self.clipPoint1[1], self.clipPoint2[1]),
                                     max(self.clipPoint1[0], self.clipPoint2[0]),
                                     max(self.clipPoint1[1], self.clipPoint2[1]),
                                     self.temp_algorithm)
+            else:
+                clipped_list = alg.clipPolygon(self.temp_item.p_list,
+                                    min(self.clipPoint1[0], self.clipPoint2[0]),
+                                    min(self.clipPoint1[1], self.clipPoint2[1]),
+                                    max(self.clipPoint1[0], self.clipPoint2[0]),
+                                    max(self.clipPoint1[1], self.clipPoint2[1]))
             if clipped_list == '':
                 self.temp_item = ''
             else:

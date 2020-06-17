@@ -2,6 +2,7 @@
 # -*- coding:utf-8 -*-
 
 # 本文件只允许依赖math库
+import copy
 import math
 
 
@@ -327,4 +328,32 @@ def clip(p_list, x_min, y_min, x_max, y_max, algorithm):
             return [[int(a[0] + umax * p[1]), int(a[1] + umax * p[3])], [int(a[0] + umin * p[1]), int(a[1] + umin * p[3])]]
 
 
+def inside(sp, ep, cp):  # startPoint, endPoint, checkPoint
+    return (ep[0] - sp[0]) * (cp[1] - sp[1]) - (ep[1] - sp[1]) * (cp[0] - sp[0]) > 0
+
+def intersectPoint(p1, p2, p3, p4):
+    x1, x2, x3, x4, y1, y2, y3, y4 = p1[0], p2[0], p3[0], p4[0], p1[1], p2[1], p3[1], p4[1]
+    return [int( ((x1*y2 - y1*x2) * (x3-x4) - (x1-x2) * (x3*y4 - y3*x4)) / ((x1-x2) * (y3-y4) - (y1-y2) * (x3-x4)) ),
+            int( ((x1*y2 - y1*x2) * (y3-y4) - (y1-y2) * (x3*y4 - y3*x4)) / ((x1-x2) * (y3-y4) - (y1-y2) * (x3-x4)) )]
+
+def clipPolygon(p_list, x_min, y_min, x_max, y_max):
+    print("FA")
+    vectors = [ [[x_min, y_max], [x_min, y_min]], [[x_min, y_min], [x_max, y_min]], [[x_max, y_min], [x_max, y_max]], [[x_max, y_max], [x_min, y_max]]]
+    # cannot use copy.deepcopy() in this file
+    returnList = copy.deepcopy(p_list)
+    for v in vectors:
+        tempList = []
+        for i in range(len(returnList)):
+            start, end = p_list[i - 1], p_list[i]
+            epInside = inside(v[0], v[1], end)
+            spInside = inside(v[0], v[1], start)
+            if spInside and epInside:
+                tempList.append(end)
+            elif spInside and not epInside:
+                tempList.append(intersectPoint(start, end, v[0], v[1]))
+            elif not spInside and epInside:
+                tempList.append(intersectPoint(start, end, v[0], v[1]))
+                tempList.append(end)
+        returnList = copy.deepcopy(tempList)
+    return returnList
 
