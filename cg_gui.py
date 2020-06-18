@@ -23,6 +23,7 @@ class MyCanvas(QGraphicsView):
 
         self.status = ''
         self.color = Qt.black
+        self.fill_color = Qt.green
         self.line_width = 2
         self.paintingPolygon = False
         self.paintingCurve = False
@@ -108,6 +109,11 @@ class MyCanvas(QGraphicsView):
         colorDialog = QColorDialog()
         self.color = colorDialog.getColor()
         return self.color
+
+    def set_fill_color(self):
+        colorDialog = QColorDialog()
+        self.fill_color = colorDialog.getColor()
+        return self.fill_color
 
     def set_alg(self, algorithm):
         self.temp_algorithm = algorithm
@@ -655,6 +661,22 @@ class MainWindow(QMainWindow):
         toolBar.addWidget(pad2)
         toolBar.addSeparator()
 
+        fillColorViewer = QToolButton(self)
+        fillColorViewer.setFixedHeight(30)
+        fillColorViewer.setFixedWidth(30)
+        fillColorViewer.setStyleSheet("margin: 5px; background-color: green; border-radius: 5px;")
+        fillColorViewer.setCheckable(True)
+        fillColorViewer.toggled.connect(self.set_fill_color_action)
+        toolBar.addWidget(fillColorViewer)
+        self.fillColorViewer = fillColorViewer
+
+        fillBtn = QAction(QIcon("./icon/fill.png"), "图元填充", toolBar)
+        fillBtn.setStatusTip("图元填充")
+        fillBtn.triggered.connect(self.reset_canvas_action)
+        toolBar.addAction(fillBtn)
+
+        toolBar.addSeparator()
+
         drawLineBtn = QToolButton(self)
         drawLineBtn.setIcon(QIcon("./icon/line.png"))
         drawLineBtn.setStatusTip("绘制线段")
@@ -867,6 +889,15 @@ class MainWindow(QMainWindow):
             css = "margin: 5px; background-color: rgb({0},{1},{2}); border-radius: 5px;".format(color.red(), color.green(), color.blue())
             self.colorViewer.setStyleSheet(css)
         self.statusBar().showMessage('设置颜色')
+
+    def set_fill_color_action(self):
+        fill_color = self.canvas_widget.set_fill_color()
+        if fill_color.isValid():
+            css = "margin: 5px; background-color: rgb({0},{1},{2}); border-radius: 5px;".format(fill_color.red(),
+                                                                                                fill_color.green(),
+                                                                                                fill_color.blue())
+            self.fillColorViewer.setStyleSheet(css)
+        self.statusBar().showMessage('设置填充颜色')
 
     def save_canvas_action(self):
         self.canvas_widget.saveImage()

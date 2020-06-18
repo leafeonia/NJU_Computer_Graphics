@@ -387,8 +387,12 @@ def fillEllipse(item_pixels, y_min, y_max):
         dic[y] = []
     for pixel in item_pixels:
         dic[pixel[1]].append(pixel[0])
+    mid = (y_min + y_max) / 2
     for y in range(y_min, y_max):
         if len(dic[y]) > 1:
             for x in range(dic[y][1], dic[y][0]):
+                returnList.append([x, y])
+        elif len(dic[y]) == 0 and mid - 1 <= y and y <= mid + 1:
+            for x in range(dic[y + 1][1], dic[y + 1][0]):
                 returnList.append([x, y])
     return returnList
