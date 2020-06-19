@@ -47,6 +47,8 @@ class MyCanvas(QGraphicsView):
         # helpers
         self.helperPoints_item = MyItem("helperPoints", "helperPoints", [])
         self.helperLines_item = MyItem("helperLines", "helperLines", [])
+        self.helperPoints_item.setZValue(1)
+        self.helperLines_item.setZValue(1)
         self.scene().addItem(self.helperPoints_item)
         self.scene().addItem(self.helperLines_item)
 
@@ -114,6 +116,14 @@ class MyCanvas(QGraphicsView):
         colorDialog = QColorDialog()
         self.fill_color = colorDialog.getColor()
         return self.fill_color
+
+    def fill(self):
+        if self.selected_id == '' or (not (self.item_dict[self.selected_id].item_type == 'polygonDone' or self.item_dict[self.selected_id].item_type == 'ellipse')):
+            return False
+        else:
+            self.item_dict[self.selected_id].fill_color = self.fill_color
+            self.updateScene([self.sceneRect()])
+            return True
 
     def set_alg(self, algorithm):
         self.temp_algorithm = algorithm
@@ -226,24 +236,32 @@ class MyCanvas(QGraphicsView):
         # self.status = ''
         self.updateScene([self.sceneRect()])
 
-    def keyPressEvent(self, event):
+    def copy(self):
+        if self.selected_id == '':
+            return False
+        self.main_window.statusBar().showMessage('图元复制： %s' % self.selected_id)
+        self.copied_item = self.temp_item
+        return True
 
-        if event.key() == Qt.Key_C and QApplication.keyboardModifiers() == Qt.ControlModifier:
-            self.main_window.statusBar().showMessage('图元复制： %s' % self.selected_id)
-            self.copied_item = self.temp_item
-        elif event.key() == Qt.Key_V and QApplication.keyboardModifiers() == Qt.ControlModifier and self.copied_item:
-            new_p_list = copy.deepcopy(self.copied_item.p_list)
-            for point in new_p_list:
-                point[0] += 20
-                point[1] += 20
-            newId = self.main_window.get_id(self.copied_item.item_type, 0)
-            newItem = MyItem(newId, self.copied_item.item_type, new_p_list, self.copied_item.color, self.copied_item.width, self.copied_item.algorithm)
-            self.scene().addItem(newItem)
-            self.item_dict[newId] = newItem
-            self.list_widget.addItem(newId)
-            self.selection_changed(newId)
-            self.main_window.get_id(self.copied_item.item_type, 1)
-            self.main_window.statusBar().showMessage('图元粘贴： %s' % newId)
+    def paste(self):
+        if not self.copied_item:
+            return False
+        new_p_list = copy.deepcopy(self.copied_item.p_list)
+        for point in new_p_list:
+            point[0] += 20
+            point[1] += 20
+        newId = self.main_window.get_id(self.copied_item.item_type, 0)
+        newItem = MyItem(newId, self.copied_item.item_type, new_p_list, self.copied_item.color, self.copied_item.width,
+                         self.copied_item.algorithm)
+        newItem.fill_color = self.copied_item.fill_color
+        self.scene().addItem(newItem)
+        self.item_dict[newId] = newItem
+        self.list_widget.addItem(newId)
+        self.selection_changed(newId)
+        self.main_window.get_id(self.copied_item.item_type, 1)
+        self.main_window.statusBar().showMessage('图元粘贴： %s' % newId)
+        return True
+
 
     def mousePressEvent(self, event: QMouseEvent) -> None:
         pos = self.mapToScene(event.localPos().toPoint())
@@ -465,6 +483,7 @@ class MyItem(QGraphicsItem):
         self.item_type = item_type  # 图元类型，'line'、'polygon'、'ellipse'、'curve'等
         self.p_list = p_list        # 图元参数
         self.color = color
+        self.fill_color = Qt.transparent
         self.algorithm = algorithm  # 绘制算法，'DDA'、'Bresenham'、'Bezier'、'B-spline'等
         self.width = width
         self.selected = False
@@ -508,21 +527,23 @@ class MyItem(QGraphicsItem):
         elif self.item_type == 'polygonDone':
             item_pixels = alg.draw_polygon(self.p_list, self.algorithm)
             box = self.boundingRect()
-            fill_pixels = alg.fillPolygon(self.p_list, int(box.x()), int(box.y()), int(box.x() + box.width()), int(box.y() + box.height()))
-            pen2 = QPen()
-            pen2.setBrush(QColor(Qt.blue))
-            painter.setPen(pen2)
-            for p in fill_pixels:
-                painter.drawPoint(*p)
+            if self.fill_color != Qt.transparent:
+                fill_pixels = alg.fillPolygon(self.p_list, int(box.x()), int(box.y()), int(box.x() + box.width()), int(box.y() + box.height()))
+                pen2 = QPen()
+                pen2.setBrush(QColor(self.fill_color))
+                painter.setPen(pen2)
+                for p in fill_pixels:
+                    painter.drawPoint(*p)
         elif self.item_type == 'ellipse':
             item_pixels = alg.draw_ellipse(self.p_list)
             box = self.boundingRect()
-            fill_pixels = alg.fillEllipse(item_pixels, int(box.y()), int(box.y() + box.height()))
-            pen2 = QPen()
-            pen2.setBrush(QColor(Qt.cyan))
-            painter.setPen(pen2)
-            for p in fill_pixels:
-                painter.drawPoint(*p)
+            if self.fill_color != Qt.transparent:
+                fill_pixels = alg.fillEllipse(item_pixels, int(box.y()), int(box.y() + box.height()))
+                pen2 = QPen()
+                pen2.setBrush(QColor(self.fill_color))
+                painter.setPen(pen2)
+                for p in fill_pixels:
+                    painter.drawPoint(*p)
         elif self.item_type == 'curve':
             item_pixels = alg.draw_curve(self.p_list, self.algorithm)
         pen = QPen()
@@ -603,9 +624,9 @@ class MainWindow(QMainWindow):
 
         # 使用QGraphicsView作为画布
         self.scene = QGraphicsScene(self)
-        self.scene.setSceneRect(0, 0, 600, 600)
+        self.scene.setSceneRect(0, 0, 800, 600)
         self.canvas_widget = MyCanvas(self.scene, self)
-        self.canvas_widget.setFixedSize(602, 602)
+        self.canvas_widget.setFixedSize(802, 602)
         self.canvas_widget.main_window = self
         self.canvas_widget.list_widget = self.list_widget
 
@@ -628,6 +649,16 @@ class MainWindow(QMainWindow):
         saveCanvas.setStatusTip("保存画布")
         saveCanvas.triggered.connect(self.save_canvas_action)
         toolBar.addAction(saveCanvas)
+
+        copyBtn = QAction(QIcon("./icon/copy.png"), "复制图元", toolBar)
+        copyBtn.setStatusTip("复制图元")
+        copyBtn.triggered.connect(self.copy_action)
+        toolBar.addAction(copyBtn)
+
+        pasteBtn = QAction(QIcon("./icon/paste.png"), "粘贴图元", toolBar)
+        pasteBtn.setStatusTip("粘贴图元")
+        pasteBtn.triggered.connect(self.paste_action)
+        toolBar.addAction(pasteBtn)
 
         toolBar.addSeparator()
 
@@ -672,7 +703,7 @@ class MainWindow(QMainWindow):
 
         fillBtn = QAction(QIcon("./icon/fill.png"), "图元填充", toolBar)
         fillBtn.setStatusTip("图元填充")
-        fillBtn.triggered.connect(self.reset_canvas_action)
+        fillBtn.triggered.connect(self.fill_action)
         toolBar.addAction(fillBtn)
 
         toolBar.addSeparator()
@@ -760,6 +791,7 @@ class MainWindow(QMainWindow):
     def get_id(self, type, add):
         if type == 'line':
             self.line_cnt += add
+            print ('line ' + str(self.line_cnt))
             return 'line ' + str(self.line_cnt)
         elif type == 'polygon' or type == 'polygonDone':
             self.polygon_cnt += add
@@ -898,6 +930,20 @@ class MainWindow(QMainWindow):
                                                                                                 fill_color.blue())
             self.fillColorViewer.setStyleSheet(css)
         self.statusBar().showMessage('设置填充颜色')
+
+    def fill_action(self):
+        if self.canvas_widget.fill():
+            self.statusBar().showMessage('填充图元')
+        else:
+            self.statusBar().showMessage('请选中多边形或椭圆图元进行填充')
+
+    def copy_action(self):
+        if not self.canvas_widget.copy():
+            self.statusBar().showMessage('请选中图元进行复制')
+
+    def paste_action(self):
+        if not self.canvas_widget.paste():
+            self.statusBar().showMessage('请先复制图元')
 
     def save_canvas_action(self):
         self.canvas_widget.saveImage()
