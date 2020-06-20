@@ -372,9 +372,9 @@ def fillPolygon(p_list, x_min, y_min, x_max, y_max):
         # remove overlap x
         intersect_x = list(dict.fromkeys(intersect_x))
         for i in range(len(intersect_x) - 1):
-            if intersect_x[i] > intersect_x[i + 1]:
-                intersect_x[i], intersect_x[i + 1] = intersect_x[i + 1], intersect_x[i]
-
+            for j in range(i + 1, len(intersect_x)):
+                if intersect_x[i] > intersect_x[j]:
+                    intersect_x[i], intersect_x[j] = intersect_x[j], intersect_x[i]
         for i in range(0, len(intersect_x) - 1, 2):
             for x in range(intersect_x[i], intersect_x[i + 1]):
                 returnList.append([x, y])

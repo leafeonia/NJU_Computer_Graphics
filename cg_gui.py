@@ -258,7 +258,7 @@ class MyCanvas(QGraphicsView):
         self.item_dict[newId] = newItem
         self.list_widget.addItem(newId)
         self.selection_changed(newId)
-        self.main_window.get_id(self.copied_item.item_type, 1)
+        self.temp_id = self.main_window.get_id(self.copied_item.item_type, 1)
         self.main_window.statusBar().showMessage('图元粘贴： %s' % newId)
         return True
 
@@ -791,7 +791,6 @@ class MainWindow(QMainWindow):
     def get_id(self, type, add):
         if type == 'line':
             self.line_cnt += add
-            print ('line ' + str(self.line_cnt))
             return 'line ' + str(self.line_cnt)
         elif type == 'polygon' or type == 'polygonDone':
             self.polygon_cnt += add
