@@ -338,7 +338,6 @@ def intersectPoint(p1, p2, p3, p4):
 
 def clipPolygon(p_list, x_min, y_min, x_max, y_max):
     vectors = [ [[x_min, y_max], [x_min, y_min]], [[x_min, y_min], [x_max, y_min]], [[x_max, y_min], [x_max, y_max]], [[x_max, y_max], [x_min, y_max]]]
-    # cannot use copy.deepcopy() in this file
     returnList = copy.deepcopy(p_list)
     for v in vectors:
         tempList = []

@@ -7,6 +7,7 @@ from typing import Optional
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
+from PyQt5 import QtGui
 import math
 import copy
 
@@ -256,6 +257,7 @@ class MyCanvas(QGraphicsView):
         newItem.fill_color = self.copied_item.fill_color
         self.scene().addItem(newItem)
         self.item_dict[newId] = newItem
+        self.copied_item = newItem
         self.list_widget.addItem(newId)
         self.selection_changed(newId)
         self.temp_id = self.main_window.get_id(self.copied_item.item_type, 1)
@@ -319,7 +321,7 @@ class MyCanvas(QGraphicsView):
                 self.temp_plist = self.temp_item.p_list[:]
                 self.corePoint = self.temp_item.corePoint()
         elif self.status == 'select':
-            item = self.scene().itemAt(x, y, QTransform())
+            item = self.scene().itemAt(pos, QtGui.QTransform())
             if item is not None:
                 self.selection_changed(item.id)
         if self.temp_item:
@@ -462,6 +464,7 @@ class MyCanvas(QGraphicsView):
             self.temp_id = ''
             self.temp_plist = self.temp_item.p_list[:]
         super().mouseReleaseEvent(event)
+
 
 
 class MyItem(QGraphicsItem):
@@ -946,6 +949,20 @@ class MainWindow(QMainWindow):
 
     def save_canvas_action(self):
         self.canvas_widget.saveImage()
+
+    def closeEvent(self, a0: QtGui.QCloseEvent):
+        messageBox = QMessageBox()
+        messageBox.setWindowTitle("保存画布")
+        messageBox.setText("是否保存画布后再关闭？")
+        messageBox.setStandardButtons(QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
+        ret = messageBox.exec()
+        if ret == QMessageBox.Yes:
+            self.canvas_widget.saveImage()
+            a0.accept()
+        elif ret == QMessageBox.No:
+            a0.accept()
+        else:
+            a0.ignore()
 
 
 if __name__ == '__main__':
