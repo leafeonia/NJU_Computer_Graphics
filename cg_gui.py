@@ -101,6 +101,11 @@ class MyCanvas(QGraphicsView):
         self.helperPoints_item.p_list = []
         self.scene().removeItem(self.helperPoints_item)
         self.scene().removeItem(self.helperLines_item)
+        self.status = ''
+        self.paintingPolygon = False
+        self.paintingCurve = False
+        self.temp_item = None
+        self.temp_plist = []
         self.scene().clear()
         self.scene().addItem(self.helperPoints_item)
         self.scene().addItem(self.helperLines_item)
